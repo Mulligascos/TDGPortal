@@ -1,0 +1,1 @@
+export { BagTagsPage as default } from './MemberPages'
