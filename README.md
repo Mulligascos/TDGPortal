@@ -1,5 +1,7 @@
 # Disc Golf Club App
 
+Updated 8/5/26
+
 React + Supabase + Vercel. Free tier throughout.
 
 ---
@@ -42,6 +44,7 @@ vercel
 ```
 
 When prompted, add these environment variables:
+
 - `VITE_SUPABASE_URL` — your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` — your Supabase anon key
 
@@ -50,6 +53,7 @@ Or set them in the Vercel dashboard under Project → Settings → Environment V
 ---
 
 ## Phase 1 features (built)
+
 - Magic link login (no passwords)
 - New round: course → layout → starting hole → players → scorecard
 - Live scoring: strokeplay with par tracking and relative score display
@@ -60,6 +64,7 @@ Or set them in the Vercel dashboard under Project → Settings → Environment V
 - Hazard / lost disc / suggestion reports
 
 ## Phase 2 (coming next)
+
 - Full admin panel: members, courses, layouts, bag tag assignment
 - Events & tournaments
 - Matchplay scoring
@@ -69,11 +74,11 @@ Or set them in the Vercel dashboard under Project → Settings → Environment V
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `supabase/schema.sql` | Full DB schema + RLS policies |
-| `src/lib/supabase.js` | Supabase client |
-| `src/lib/scoring.js` | Hole ordering, par lookup, score calc |
-| `src/hooks/useAuth.jsx` | Auth context (session, profile, role) |
-| `src/pages/NewRoundPage.jsx` | 4-step round creation flow |
-| `src/pages/ScorecardPage.jsx` | Live scoring UI |
+| File                          | Purpose                               |
+| ----------------------------- | ------------------------------------- |
+| `supabase/schema.sql`         | Full DB schema + RLS policies         |
+| `src/lib/supabase.js`         | Supabase client                       |
+| `src/lib/scoring.js`          | Hole ordering, par lookup, score calc |
+| `src/hooks/useAuth.jsx`       | Auth context (session, profile, role) |
+| `src/pages/NewRoundPage.jsx`  | 4-step round creation flow            |
+| `src/pages/ScorecardPage.jsx` | Live scoring UI                       |
