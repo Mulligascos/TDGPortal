@@ -5,9 +5,7 @@ import Layout from "../../components/shared/Layout";
 export default function AdminCourses() {
   const [courses, setCourses] = useState([]);
   const [expanded, setExpanded] = useState(null);
-  const [layouts, setLayouts] = useState({}); // { courseId: [layout, ...] }
-  const [showCourseForm, setShowCourseForm] = useState(false);
-  const [showLayoutForm, setShowLayoutForm] = useState(null); // courseId
+  const [layouts, setLayouts] = useState({});
   const [courseForm, setCourseForm] = useState({ name: "", location: "" });
   const [layoutForm, setLayoutForm] = useState({
     layout_name: "",
@@ -15,6 +13,10 @@ export default function AdminCourses() {
     loops: 1,
     par_json: "",
   });
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [editingLayout, setEditingLayout] = useState(null);
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [showLayoutForm, setShowLayoutForm] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
@@ -44,19 +46,105 @@ export default function AdminCourses() {
       loadLayouts(courseId);
     }
     setShowLayoutForm(null);
+    setEditingLayout(null);
+  }
+
+  function startNewCourse() {
+    setEditingCourse(null);
+    setCourseForm({ name: "", location: "" });
+    setShowCourseForm(true);
+    setError(null);
+    window.scrollTo(0, 0);
+  }
+
+  function startEditCourse(course, e) {
+    e.stopPropagation();
+    setEditingCourse(course);
+    setCourseForm({ name: course.name, location: course.location ?? "" });
+    setShowCourseForm(true);
+    setError(null);
+    window.scrollTo(0, 0);
+  }
+
+  function cancelCourseForm() {
+    setShowCourseForm(false);
+    setEditingCourse(null);
+    setCourseForm({ name: "", location: "" });
+    setError(null);
+  }
+
+  function startNewLayout(courseId) {
+    setEditingLayout(null);
+    setLayoutForm({
+      layout_name: "",
+      number_of_holes: 9,
+      loops: 1,
+      par_json: "",
+    });
+    setShowLayoutForm(courseId);
+    setError(null);
+  }
+
+  function startEditLayout(layout, e) {
+    e.stopPropagation();
+    setEditingLayout(layout);
+    setLayoutForm({
+      layout_name: layout.layout_name,
+      number_of_holes: layout.number_of_holes,
+      loops: layout.loops,
+      par_json: layout.par_json.join(","),
+    });
+    setShowLayoutForm(layout.course_id);
+    setError(null);
+  }
+
+  function cancelLayoutForm() {
+    setShowLayoutForm(null);
+    setEditingLayout(null);
+    setLayoutForm({
+      layout_name: "",
+      number_of_holes: 9,
+      loops: 1,
+      par_json: "",
+    });
+    setError(null);
+  }
+
+  function parseParJson(str, holeCount) {
+    const cleaned = str.trim();
+    const arr = cleaned.startsWith("[")
+      ? JSON.parse(cleaned)
+      : cleaned.split(",").map((n) => parseInt(n.trim()));
+    if (arr.some(isNaN)) throw new Error("invalid");
+    if (arr.length !== parseInt(holeCount))
+      throw new Error(`count mismatch: got ${arr.length}, need ${holeCount}`);
+    return arr;
   }
 
   async function saveCourse(e) {
     e.preventDefault();
     setError(null);
-    const { error } = await supabase.from("courses").insert(courseForm);
-    if (error) {
-      setError(error.message);
-      return;
+
+    if (editingCourse) {
+      const { error } = await supabase
+        .from("courses")
+        .update(courseForm)
+        .eq("id", editingCourse.id);
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setSuccess("Course updated!");
+    } else {
+      const { error } = await supabase.from("courses").insert(courseForm);
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setSuccess("Course added!");
     }
-    setSuccess("Course added!");
-    setCourseForm({ name: "", location: "" });
-    setShowCourseForm(false);
+
+    cancelCourseForm();
     loadCourses();
   }
 
@@ -64,52 +152,50 @@ export default function AdminCourses() {
     e.preventDefault();
     setError(null);
 
-    // Parse par_json — accept comma separated e.g. "3,4,3,3,4,3,4,3,3"
     let parArray;
     try {
-      const cleaned = layoutForm.par_json.trim();
-      parArray = cleaned.startsWith("[")
-        ? JSON.parse(cleaned)
-        : cleaned.split(",").map((n) => parseInt(n.trim()));
-
-      if (parArray.some(isNaN)) throw new Error();
-      if (parArray.length !== parseInt(layoutForm.number_of_holes)) {
-        setError(
-          `Par values count (${parArray.length}) must match number of holes (${layoutForm.number_of_holes})`,
-        );
-        return;
-      }
-    } catch {
+      parArray = parseParJson(layoutForm.par_json, layoutForm.number_of_holes);
+    } catch (err) {
       setError(
-        "Invalid par values. Enter comma-separated numbers e.g. 3,4,3,3,4,3,4,3,3",
+        `Invalid par values — ${err.message}. Enter comma-separated numbers e.g. 3,4,3,3,4,3,4,3,3`,
       );
       return;
     }
 
-    const { error } = await supabase.from("layouts").insert({
-      course_id: courseId,
+    const payload = {
       layout_name: layoutForm.layout_name,
       number_of_holes: parseInt(layoutForm.number_of_holes),
       loops: parseInt(layoutForm.loops),
       par_json: parArray,
-    });
+    };
 
-    if (error) {
-      setError(error.message);
-      return;
+    if (editingLayout) {
+      const { error } = await supabase
+        .from("layouts")
+        .update(payload)
+        .eq("id", editingLayout.id);
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setSuccess("Layout updated!");
+    } else {
+      const { error } = await supabase
+        .from("layouts")
+        .insert({ ...payload, course_id: courseId });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setSuccess("Layout added!");
     }
-    setSuccess("Layout added!");
-    setLayoutForm({
-      layout_name: "",
-      number_of_holes: 9,
-      loops: 1,
-      par_json: "",
-    });
-    setShowLayoutForm(null);
+
+    cancelLayoutForm();
     loadLayouts(courseId);
   }
 
-  async function deleteCourse(id) {
+  async function deleteCourse(id, e) {
+    e.stopPropagation();
     if (!confirm("Delete this course and all its layouts?")) return;
     await supabase.from("courses").delete().eq("id", id);
     loadCourses();
@@ -140,17 +226,20 @@ export default function AdminCourses() {
 
       <button
         style={addBtn}
-        onClick={() => {
-          setShowCourseForm((s) => !s);
-          setError(null);
-        }}
+        onClick={() =>
+          showCourseForm && !editingCourse
+            ? cancelCourseForm()
+            : startNewCourse()
+        }
       >
-        {showCourseForm ? "Cancel" : "+ Add course"}
+        {showCourseForm && !editingCourse ? "Cancel" : "+ Add course"}
       </button>
 
       {showCourseForm && (
         <form onSubmit={saveCourse} style={formCard}>
-          <h3 style={formTitle}>New course</h3>
+          <h3 style={formTitle}>
+            {editingCourse ? `Edit — ${editingCourse.name}` : "New course"}
+          </h3>
           <label style={lbl}>Course name</label>
           <input
             style={inp}
@@ -170,9 +259,14 @@ export default function AdminCourses() {
             }
             placeholder="e.g. Christchurch"
           />
-          <button type="submit" style={submitBtn}>
-            Save course
-          </button>
+          <div style={btnRow}>
+            <button type="button" style={cancelBtn} onClick={cancelCourseForm}>
+              Cancel
+            </button>
+            <button type="submit" style={submitBtn}>
+              {editingCourse ? "Save changes" : "Save course"}
+            </button>
+          </div>
         </form>
       )}
 
@@ -182,7 +276,6 @@ export default function AdminCourses() {
 
       {courses.map((course) => (
         <div key={course.id} style={courseCard}>
-          {/* Course header */}
           <div style={courseHeader} onClick={() => toggleCourse(course.id)}>
             <div>
               <div style={courseName}>{course.name}</div>
@@ -192,19 +285,21 @@ export default function AdminCourses() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
-                style={deleteBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteCourse(course.id);
-                }}
+                style={editBtn}
+                onClick={(e) => startEditCourse(course, e)}
               >
-                Delete
+                ✏️ Edit
+              </button>
+              <button
+                style={deleteBtn}
+                onClick={(e) => deleteCourse(course.id, e)}
+              >
+                🗑
               </button>
               <span style={chevron}>{expanded === course.id ? "▲" : "▼"}</span>
             </div>
           </div>
 
-          {/* Layouts */}
           {expanded === course.id && (
             <div style={layoutsSection}>
               <div style={layoutsHeader}>
@@ -212,12 +307,14 @@ export default function AdminCourses() {
                 <button
                   style={addLayoutBtn}
                   onClick={() =>
-                    setShowLayoutForm(
-                      showLayoutForm === course.id ? null : course.id,
-                    )
+                    showLayoutForm === course.id && !editingLayout
+                      ? cancelLayoutForm()
+                      : startNewLayout(course.id)
                   }
                 >
-                  {showLayoutForm === course.id ? "Cancel" : "+ Add layout"}
+                  {showLayoutForm === course.id && !editingLayout
+                    ? "Cancel"
+                    : "+ Add layout"}
                 </button>
               </div>
 
@@ -226,6 +323,19 @@ export default function AdminCourses() {
                   onSubmit={(e) => saveLayout(e, course.id)}
                   style={layoutFormStyle}
                 >
+                  <h4
+                    style={{
+                      margin: "0 0 8px",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#1a2e1a",
+                    }}
+                  >
+                    {editingLayout
+                      ? `Edit — ${editingLayout.layout_name}`
+                      : "New layout"}
+                  </h4>
+
                   <label style={lbl}>Layout name</label>
                   <input
                     style={inp}
@@ -287,13 +397,21 @@ export default function AdminCourses() {
                     placeholder={`${layoutForm.number_of_holes} values e.g. 3,4,3,3,4,3,4,3,3`}
                   />
                   <p style={parHint}>
-                    Enter one par value per hole, separated by commas. Must have
-                    exactly {layoutForm.number_of_holes} values.
+                    Must have exactly {layoutForm.number_of_holes} values.
                   </p>
 
-                  <button type="submit" style={submitBtn}>
-                    Save layout
-                  </button>
+                  <div style={btnRow}>
+                    <button
+                      type="button"
+                      style={cancelBtn}
+                      onClick={cancelLayoutForm}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" style={submitBtn}>
+                      {editingLayout ? "Save changes" : "Save layout"}
+                    </button>
+                  </div>
                 </form>
               )}
 
@@ -317,17 +435,25 @@ export default function AdminCourses() {
                       {layout.number_of_holes} holes
                       {layout.loops > 1
                         ? ` × ${layout.loops} loops = ${layout.number_of_holes * layout.loops} total`
-                        : ""}{" "}
-                      · Par {totalPar(layout.par_json, layout.loops)}
+                        : ""}
+                      {" · "}Par {totalPar(layout.par_json, layout.loops)}
                     </div>
                     <div style={parDisplay}>{layout.par_json.join(" – ")}</div>
                   </div>
-                  <button
-                    style={deleteBtn}
-                    onClick={() => deleteLayout(layout.id, course.id)}
-                  >
-                    Delete
-                  </button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      style={editBtn}
+                      onClick={(e) => startEditLayout(layout, e)}
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      style={deleteBtn}
+                      onClick={() => deleteLayout(layout.id, course.id)}
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -375,16 +501,31 @@ const inp = {
   boxSizing: "border-box",
   background: "#fff",
 };
+const btnRow = {
+  display: "flex",
+  gap: 8,
+  justifyContent: "flex-end",
+  marginTop: 4,
+};
 const submitBtn = {
-  padding: "0.75rem",
+  padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
   color: "#fff",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
-  fontSize: 15,
+  fontSize: 14,
   cursor: "pointer",
-  marginTop: 4,
+};
+const cancelBtn = {
+  padding: "0.625rem 1.25rem",
+  background: "#f3f4f6",
+  color: "#374151",
+  border: "none",
+  borderRadius: 8,
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
 };
 const courseCard = {
   background: "#fff",
@@ -453,6 +594,15 @@ const parDisplay = {
   color: "#9ca3af",
   marginTop: 2,
   fontFamily: "monospace",
+};
+const editBtn = {
+  padding: "3px 10px",
+  background: "#fff",
+  border: "1px solid #d1d5db",
+  color: "#374151",
+  borderRadius: 6,
+  fontSize: 12,
+  cursor: "pointer",
 };
 const deleteBtn = {
   padding: "3px 10px",
