@@ -20,6 +20,7 @@ export default function NewRoundPage() {
   const [startingHole, setStartingHole] = useState(1);
   const [format, setFormat] = useState("strokeplay");
   const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [playForTags, setPlayForTags] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -77,6 +78,7 @@ export default function NewRoundPage() {
           layout_id: selectedLayout.id,
           starting_hole: startingHole,
           format,
+          play_for_tags: playForTags,
           created_by: user.id,
         })
         .select()
@@ -258,6 +260,30 @@ export default function NewRoundPage() {
                 You are the scorer. Select everyone in the group.
               </p>
             )}
+            {format === "strokeplay" && selectedPlayers.length >= 2 && (
+              <label style={styles.toggleRow}>
+                <div
+                  style={{
+                    ...styles.toggle,
+                    ...(playForTags ? styles.toggleOn : {}),
+                  }}
+                  onClick={() => setPlayForTags((t) => !t)}
+                >
+                  <div
+                    style={{
+                      ...styles.toggleThumb,
+                      ...(playForTags ? styles.toggleThumbOn : {}),
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={styles.toggleLabel}>Play for bag tags</div>
+                  <div style={styles.toggleSub}>
+                    Tags will be reassigned based on final scores
+                  </div>
+                </div>
+              </label>
+            )}
             <div style={styles.list}>
               {members.map((m) => {
                 const selected = selectedPlayers.includes(m.id);
@@ -352,6 +378,21 @@ export default function NewRoundPage() {
                 </strong>
               </div>
             </div>
+            {playForTags && format === "strokeplay" && (
+              <div
+                style={{
+                  ...styles.summaryRow,
+                  background: "#f0faf4",
+                  borderRadius: 6,
+                  padding: "6px 8px",
+                }}
+              >
+                <span>Bag tags</span>
+                <strong style={{ color: "#1d6b3a" }}>
+                  🏷️ Playing for tags
+                </strong>
+              </div>
+            )}
             {error && <p style={styles.error}>{error}</p>}
             <div style={styles.navRow}>
               <button style={styles.backBtn} onClick={() => setStep(2)}>
@@ -517,4 +558,39 @@ const styles = {
   },
   empty: { color: "#6b7280", fontSize: 14 },
   error: { color: "#dc2626", fontSize: 14 },
+  toggleRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    background: "#f0faf4",
+    borderRadius: 10,
+    padding: "0.75rem",
+    marginBottom: "0.5rem",
+    cursor: "pointer",
+  },
+  toggle: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    background: "#d1d5db",
+    position: "relative",
+    flexShrink: 0,
+    transition: "background 0.2s",
+    cursor: "pointer",
+  },
+  toggleOn: { background: "#1d6b3a" },
+  toggleThumb: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    background: "#fff",
+    transition: "left 0.2s",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+  },
+  toggleThumbOn: { left: 22 },
+  toggleLabel: { fontSize: 14, fontWeight: 600, color: "#1a2e1a" },
+  toggleSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
 };
