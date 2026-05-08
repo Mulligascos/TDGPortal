@@ -27,7 +27,9 @@ export default function ScorecardPage() {
     () => localStorage.getItem("darkMode") === "true",
   );
   const [showSummary, setShowSummary] = useState(false);
-  const [playoffHoles, setPlayoffHoles] = useState([]); // extra holes beyond layout
+  const [playoffHoles, setPlayoffHoles] = useState([]);
+  const [tagResolution, setTagResolution] = useState(null);
+  const [confirmingTags, setConfirmingTags] = useState(false);
 
   useEffect(() => {
     loadRound();
@@ -52,6 +54,7 @@ export default function ScorecardPage() {
       roundData.layouts.loops,
       parJson,
     );
+    setPlayOrder(order);
 
     const { data: rp } = await supabase
       .from("round_players")
@@ -71,7 +74,7 @@ export default function ScorecardPage() {
     }
     setScores(scoreMap);
 
-    // Detect any stored playoff holes (play_order > order.length)
+    // Detect stored playoff holes
     const maxPlayOrder = Math.max(
       0,
       ...(existingScores ?? []).map((s) => s.play_order),
@@ -155,7 +158,6 @@ export default function ScorecardPage() {
     if (nextIndex !== undefined) goToHole(nextIndex);
   }
 
-  // Add a playoff hole continuing from where the course left off
   function addPlayoffHole() {
     const fullOrder = [...playOrder, ...playoffHoles];
     const lastHole = fullOrder[fullOrder.length - 1];
@@ -173,9 +175,103 @@ export default function ScorecardPage() {
     goToHole(fullOrder.length);
   }
 
-  async function finishRound() {
+  // ── Bag tag resolution ──────────────────────────────────
+  async function resolveTagsAfterRound(fullOrder, parJson) {
+    if (!round.play_for_tags) return null;
+
+    const playerIds = players.map((p) => p.id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, nickname, bag_tag_number")
+      .in("id", playerIds);
+
+    const taggedPlayers = profiles.filter((p) => p.bag_tag_number != null);
+    if (taggedPlayers.length < 2) return null;
+
+    const playerTotals = taggedPlayers.map((p) => {
+      const rows = fullOrder
+        .map((h) => ({
+          hole_number: h.holeNumber,
+          loop: h.loop,
+          strokes: getScore(p.id, h.holeNumber, h.loop),
+        }))
+        .filter((s) => s.strokes != null);
+      const { total } = calcPlayerScore(rows, parJson);
+      return { ...p, total };
+    });
+
+    // Sort players by score ascending (lowest = best)
+    const sortedByScore = [...playerTotals].sort((a, b) => a.total - b.total);
+
+    // Sort tags ascending (lowest number = best rank)
+    const sortedTags = taggedPlayers
+      .map((p) => p.bag_tag_number)
+      .sort((a, b) => a - b);
+
+    // Assign best score → lowest tag
+    const changes = [];
+    sortedByScore.forEach((player, i) => {
+      const newTag = sortedTags[i];
+      if (player.bag_tag_number !== newTag) {
+        changes.push({
+          playerId: player.id,
+          name: player.nickname || player.full_name,
+          oldTag: player.bag_tag_number,
+          newTag,
+          score: player.total,
+        });
+      }
+    });
+
+    return { changes, allPlayers: sortedByScore, sortedTags };
+  }
+
+  async function handleFinishWithTags() {
     setFinishing(true);
     await saveHole();
+
+    const fullOrder = [...playOrder, ...playoffHoles];
+    const parJson = layout.par_json;
+
+    if (round.play_for_tags) {
+      const resolution = await resolveTagsAfterRound(fullOrder, parJson);
+      if (resolution) {
+        setTagResolution(resolution);
+        setFinishing(false);
+        return;
+      }
+    }
+
+    await supabase
+      .from("rounds")
+      .update({ status: "complete" })
+      .eq("id", roundId);
+    navigate("/history");
+  }
+
+  async function confirmTagChanges() {
+    setConfirmingTags(true);
+    for (const change of tagResolution.changes) {
+      await supabase
+        .from("profiles")
+        .update({ bag_tag_number: change.newTag })
+        .eq("id", change.playerId);
+      await supabase.from("bag_tag_history").insert({
+        tag_number: change.newTag,
+        holder_id: change.playerId,
+        round_id: roundId,
+        notes: `Tag won in round. Score: ${change.score}`,
+      });
+    }
+    await supabase
+      .from("rounds")
+      .update({ status: "complete" })
+      .eq("id", roundId);
+    setConfirmingTags(false);
+    navigate("/history");
+  }
+
+  async function declineTagChanges() {
     await supabase
       .from("rounds")
       .update({ status: "complete" })
@@ -199,7 +295,9 @@ export default function ScorecardPage() {
 
   if (!round || !layout)
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>
+      <div style={{ padding: "2rem", textAlign: "center", color: "#6b7280" }}>
+        Loading...
+      </div>
     );
 
   const isMatchplay = round.format === "matchplay";
@@ -209,12 +307,12 @@ export default function ScorecardPage() {
   const isLastHole = currentHoleIndex === fullOrder.length - 1;
   const d = darkMode;
 
-  // Matchplay running score
+  // ── Matchplay running score ─────────────────────────────
   function calcMatchScore() {
     if (!isMatchplay || players.length !== 2) return null;
     const [p1, p2] = players;
-    let score = 0; // positive = p1 leads
-    let holesLeft = fullOrder.length - currentHoleIndex - 1;
+    let score = 0;
+    const holesLeft = fullOrder.length - currentHoleIndex - 1;
 
     for (let i = 0; i <= currentHoleIndex; i++) {
       const h = fullOrder[i];
@@ -226,28 +324,17 @@ export default function ScorecardPage() {
       }
     }
 
-    const holesPlayed = currentHoleIndex + 1;
     const absScore = Math.abs(score);
     const leader = score > 0 ? p1 : score < 0 ? p2 : null;
-
-    // Match won if lead > holes remaining
     const matchWon = absScore > holesLeft;
     const allSquare = score === 0;
 
-    return {
-      score,
-      absScore,
-      leader,
-      holesLeft,
-      matchWon,
-      allSquare,
-      holesPlayed,
-    };
+    return { score, absScore, leader, holesLeft, matchWon, allSquare };
   }
 
   const matchScore = calcMatchScore();
 
-  // Strokeplay summary
+  // ── Strokeplay summary ──────────────────────────────────
   const summary = players
     .map((p) => {
       const rows = fullOrder
@@ -265,6 +352,7 @@ export default function ScorecardPage() {
     })
     .sort((a, b) => a.relativeToPar - b.relativeToPar);
 
+  // ── Dark mode tokens ────────────────────────────────────
   const dm = {
     bg: d ? "#0f1a0f" : "#f0f4f0",
     card: d ? "#1a2e1a" : "#fff",
@@ -280,7 +368,7 @@ export default function ScorecardPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: dm.bg, paddingBottom: 80 }}>
-      {/* Header */}
+      {/* ── Header ── */}
       <div
         style={{
           background: dm.header,
@@ -313,6 +401,7 @@ export default function ScorecardPage() {
               {round.starting_hole > 1
                 ? ` · Start hole ${round.starting_hole}`
                 : ""}
+              {round.play_for_tags ? " · 🏷️ Tags" : ""}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -336,7 +425,7 @@ export default function ScorecardPage() {
           </div>
         </div>
 
-        {/* Matchplay running score banner */}
+        {/* Matchplay banner */}
         {isMatchplay && matchScore && (
           <div
             style={{
@@ -359,7 +448,7 @@ export default function ScorecardPage() {
                   : `${matchScore.leader?.nickname || matchScore.leader?.full_name} ${matchScore.absScore} UP`}
             </span>
             <span style={{ fontSize: 12, opacity: 0.7 }}>
-              {matchScore.matchWon ? "" : `${matchScore.holesLeft} to play`}
+              {matchScore.matchWon ? "🏆" : `${matchScore.holesLeft} to play`}
             </span>
           </div>
         )}
@@ -391,6 +480,7 @@ export default function ScorecardPage() {
       </div>
 
       <div style={{ padding: "0.75rem 1rem", maxWidth: 680, margin: "0 auto" }}>
+        {/* ── Hole card ── */}
         {hole && (
           <div
             style={{
@@ -442,14 +532,13 @@ export default function ScorecardPage() {
               </div>
             </div>
 
-            {/* Score entry */}
+            {/* Score entry per player */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {players.map((player, playerIdx) => {
                 const strokes =
                   getScore(player.id, hole.holeNumber, hole.loop) ?? hole.par;
                 const parRel = strokes - hole.par;
 
-                // Matchplay: hole result vs opponent
                 let matchHoleResult = null;
                 if (isMatchplay && players.length === 2) {
                   const opp = players[1 - playerIdx];
@@ -476,132 +565,128 @@ export default function ScorecardPage() {
                 }
 
                 return (
-                  <div key={player.id}>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  <div
+                    key={player.id}
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        color: dm.text,
+                      }}
                     >
-                      <span
+                      {player.nickname || player.full_name}
+                    </span>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <button
                         style={{
-                          flex: 1,
-                          fontSize: 15,
-                          fontWeight: 600,
-                          color: dm.text,
-                        }}
-                      >
-                        {player.nickname || player.full_name}
-                      </span>
-                      <div
-                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          border: `1.5px solid ${dm.border}`,
+                          background: dm.input,
+                          fontSize: 20,
+                          cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <button
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            border: `1.5px solid ${dm.border}`,
-                            background: dm.input,
-                            fontSize: 20,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 700,
-                            color: dm.text,
-                          }}
-                          disabled={!isOwner || strokes <= 1}
-                          onClick={() =>
-                            updateScore(
-                              player.id,
-                              hole.holeNumber,
-                              hole.loop,
-                              Math.max(1, strokes - 1),
-                            )
-                          }
-                        >
-                          −
-                        </button>
-                        <div
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 8,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 20,
-                            fontWeight: 700,
-                            ...getRelStyle(parRel, d),
-                          }}
-                        >
-                          {strokes}
-                        </div>
-                        <button
-                          style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
-                            border: `1.5px solid ${dm.border}`,
-                            background: dm.input,
-                            fontSize: 20,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontWeight: 700,
-                            color: dm.text,
-                          }}
-                          disabled={!isOwner}
-                          onClick={() =>
-                            updateScore(
-                              player.id,
-                              hole.holeNumber,
-                              hole.loop,
-                              strokes + 1,
-                            )
-                          }
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 12,
+                          justifyContent: "center",
                           fontWeight: 700,
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          minWidth: 28,
-                          textAlign: "center",
+                          color: dm.text,
+                        }}
+                        disabled={!isOwner || strokes <= 1}
+                        onClick={() =>
+                          updateScore(
+                            player.id,
+                            hole.holeNumber,
+                            hole.loop,
+                            Math.max(1, strokes - 1),
+                          )
+                        }
+                      >
+                        −
+                      </button>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 20,
+                          fontWeight: 700,
                           ...getRelStyle(parRel, d),
                         }}
                       >
-                        {formatRelativeToPar(parRel)}
-                      </span>
-                      {isMatchplay && matchHoleResult && (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            background: matchHoleResult.bg,
-                            color: matchHoleResult.color,
-                            minWidth: 36,
-                            textAlign: "center",
-                          }}
-                        >
-                          {matchHoleResult.label}
-                        </span>
-                      )}
+                        {strokes}
+                      </div>
+                      <button
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          border: `1.5px solid ${dm.border}`,
+                          background: dm.input,
+                          fontSize: 20,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                          color: dm.text,
+                        }}
+                        disabled={!isOwner}
+                        onClick={() =>
+                          updateScore(
+                            player.id,
+                            hole.holeNumber,
+                            hole.loop,
+                            strokes + 1,
+                          )
+                        }
+                      >
+                        +
+                      </button>
                     </div>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                        minWidth: 28,
+                        textAlign: "center",
+                        ...getRelStyle(parRel, d),
+                      }}
+                    >
+                      {formatRelativeToPar(parRel)}
+                    </span>
+                    {isMatchplay && matchHoleResult && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          background: matchHoleResult.bg,
+                          color: matchHoleResult.color,
+                          minWidth: 36,
+                          textAlign: "center",
+                        }}
+                      >
+                        {matchHoleResult.label}
+                      </span>
+                    )}
                   </div>
                 );
               })}
             </div>
 
+            {/* Navigation buttons */}
             {isOwner && (
               <div
                 style={{
@@ -631,7 +716,6 @@ export default function ScorecardPage() {
                     </button>
                   )}
                   {isLastHole ? (
-                    // Matchplay: if tied after regulation, offer playoff instead of finish
                     isMatchplay && matchScore && !matchScore.matchWon ? (
                       <button
                         style={{
@@ -665,10 +749,14 @@ export default function ScorecardPage() {
                           fontSize: 16,
                           cursor: "pointer",
                         }}
-                        onClick={finishRound}
+                        onClick={handleFinishWithTags}
                         disabled={finishing}
                       >
-                        {finishing ? "Finishing…" : "Finish round ✓"}
+                        {finishing
+                          ? "Finishing…"
+                          : round.play_for_tags
+                            ? "Finish & resolve tags 🏷️"
+                            : "Finish round ✓"}
                       </button>
                     )
                   ) : (
@@ -692,8 +780,8 @@ export default function ScorecardPage() {
                   )}
                 </div>
 
-                {/* Once match is won, show finish button even on a playoff hole */}
-                {isMatchplay && matchScore?.matchWon && (
+                {/* Show finish button once match is won on a playoff hole */}
+                {isMatchplay && matchScore?.matchWon && !isLastHole && (
                   <button
                     style={{
                       padding: "0.875rem",
@@ -705,7 +793,7 @@ export default function ScorecardPage() {
                       fontSize: 16,
                       cursor: "pointer",
                     }}
-                    onClick={finishRound}
+                    onClick={handleFinishWithTags}
                     disabled={finishing}
                   >
                     {finishing ? "Finishing…" : "Finish round ✓"}
@@ -716,7 +804,7 @@ export default function ScorecardPage() {
           </div>
         )}
 
-        {/* Hole dots */}
+        {/* ── Hole navigation dots ── */}
         <div
           style={{
             display: "flex",
@@ -740,7 +828,6 @@ export default function ScorecardPage() {
                   border: "none",
                   cursor: "pointer",
                   padding: 0,
-                  transition: "transform 0.1s",
                   background:
                     i === currentHoleIndex
                       ? "#1d6b3a"
@@ -750,6 +837,7 @@ export default function ScorecardPage() {
                           ? dm.dotDone
                           : dm.dot,
                   transform: i === currentHoleIndex ? "scale(1.4)" : "none",
+                  transition: "transform 0.1s",
                 }}
                 onClick={() => saveHole(i)}
               />
@@ -762,7 +850,7 @@ export default function ScorecardPage() {
           )}
         </div>
 
-        {/* Scoreboard toggle */}
+        {/* ── Scoreboard toggle ── */}
         <button
           style={{
             width: "100%",
@@ -788,6 +876,7 @@ export default function ScorecardPage() {
               borderRadius: 12,
               padding: "1rem",
               boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+              overflowX: "auto",
             }}
           >
             <div
@@ -804,13 +893,12 @@ export default function ScorecardPage() {
             </div>
 
             {isMatchplay && matchScore ? (
-              // Matchplay scoreboard — hole by hole W/L/H
-              <div>
+              // ── Matchplay scoreboard ──
+              <div style={{ minWidth: fullOrder.length * 22 + 160 }}>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "1fr repeat(" + fullOrder.length + ", 22px) 60px",
+                    gridTemplateColumns: `120px repeat(${fullOrder.length}, 22px) 60px`,
                     gap: 2,
                     marginBottom: 4,
                   }}
@@ -836,109 +924,91 @@ export default function ScorecardPage() {
                   </div>
                 </div>
 
-                {players.map((player, playerIdx) => {
-                  let runningScore = 0;
-                  return (
+                {players.map((player, playerIdx) => (
+                  <div
+                    key={player.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: `120px repeat(${fullOrder.length}, 22px) 60px`,
+                      gap: 2,
+                      padding: "4px 0",
+                      borderTop: `1px solid ${dm.border}`,
+                    }}
+                  >
                     <div
-                      key={player.id}
                       style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "1fr repeat(" + fullOrder.length + ", 22px) 60px",
-                        gap: 2,
-                        padding: "4px 0",
-                        borderTop: `1px solid ${dm.border}`,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: dm.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: dm.text,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {player.nickname || player.full_name}
-                      </div>
-                      {fullOrder.map((h, i) => {
-                        const s = getScore(player.id, h.holeNumber, h.loop);
-                        const opp = players[1 - playerIdx];
-                        const oppS = getScore(opp.id, h.holeNumber, h.loop);
-                        let cell = {
-                          label: s ?? "·",
-                          style: { color: dm.sub, fontSize: 11 },
-                        };
-                        if (s != null && oppS != null) {
-                          if (s < oppS) {
-                            cell = {
-                              label: "W",
-                              style: {
-                                color: "#16a34a",
-                                fontWeight: 700,
-                                fontSize: 11,
-                              },
-                            };
-                          } else if (s > oppS) {
-                            cell = {
-                              label: "L",
-                              style: {
-                                color: "#dc2626",
-                                fontWeight: 700,
-                                fontSize: 11,
-                              },
-                            };
-                          } else {
-                            cell = {
-                              label: "H",
-                              style: {
-                                color: "#ca8a04",
-                                fontWeight: 700,
-                                fontSize: 11,
-                              },
-                            };
-                          }
-                        }
-                        return (
-                          <div
-                            key={i}
-                            style={{ textAlign: "center", ...cell.style }}
-                          >
-                            {cell.label}
-                          </div>
-                        );
-                      })}
-                      {/* Running match score for this player */}
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          textAlign: "center",
-                          color:
-                            matchScore.leader?.id === player.id
-                              ? "#16a34a"
-                              : matchScore.allSquare
-                                ? dm.sub
-                                : "#dc2626",
-                        }}
-                      >
-                        {matchScore.allSquare
-                          ? "AS"
-                          : matchScore.leader?.id === player.id
-                            ? `${matchScore.absScore} UP`
-                            : `${matchScore.absScore} DN`}
-                      </div>
+                      {player.nickname || player.full_name}
                     </div>
-                  );
-                })}
+                    {fullOrder.map((h, i) => {
+                      const s = getScore(player.id, h.holeNumber, h.loop);
+                      const opp = players[1 - playerIdx];
+                      const oppS = getScore(opp.id, h.holeNumber, h.loop);
+                      let label = s ?? "·";
+                      let style = { color: dm.sub, fontSize: 11 };
+                      if (s != null && oppS != null) {
+                        if (s < oppS) {
+                          label = "W";
+                          style = {
+                            color: "#16a34a",
+                            fontWeight: 700,
+                            fontSize: 11,
+                          };
+                        } else if (s > oppS) {
+                          label = "L";
+                          style = {
+                            color: "#dc2626",
+                            fontWeight: 700,
+                            fontSize: 11,
+                          };
+                        } else {
+                          label = "H";
+                          style = {
+                            color: "#ca8a04",
+                            fontWeight: 700,
+                            fontSize: 11,
+                          };
+                        }
+                      }
+                      return (
+                        <div key={i} style={{ textAlign: "center", ...style }}>
+                          {label}
+                        </div>
+                      );
+                    })}
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textAlign: "center",
+                        color:
+                          matchScore.leader?.id === player.id
+                            ? "#16a34a"
+                            : matchScore.allSquare
+                              ? dm.sub
+                              : "#dc2626",
+                      }}
+                    >
+                      {matchScore.allSquare
+                        ? "AS"
+                        : matchScore.leader?.id === player.id
+                          ? `${matchScore.absScore} UP`
+                          : `${matchScore.absScore} DN`}
+                    </div>
+                  </div>
+                ))}
 
-                {/* Par row */}
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "1fr repeat(" + fullOrder.length + ", 22px) 60px",
+                    gridTemplateColumns: `120px repeat(${fullOrder.length}, 22px) 60px`,
                     gap: 2,
                     padding: "4px 0",
                     borderTop: `1px solid ${dm.border}`,
@@ -962,13 +1032,12 @@ export default function ScorecardPage() {
                 </div>
               </div>
             ) : (
-              // Strokeplay scoreboard
-              <div>
+              // ── Strokeplay scoreboard ──
+              <div style={{ minWidth: fullOrder.length * 24 + 180 }}>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "1fr repeat(" + fullOrder.length + ", 24px) 48px 36px",
+                    gridTemplateColumns: `120px repeat(${fullOrder.length}, 24px) 48px 40px`,
                     gap: 2,
                     marginBottom: 4,
                   }}
@@ -998,16 +1067,14 @@ export default function ScorecardPage() {
                     +/-
                   </div>
                 </div>
+
                 {summary.map(
                   ({ player, total, relativeToPar, holesPlayed }) => (
                     <div
                       key={player.id}
                       style={{
                         display: "grid",
-                        gridTemplateColumns:
-                          "1fr repeat(" +
-                          fullOrder.length +
-                          ", 24px) 48px 36px",
+                        gridTemplateColumns: `120px repeat(${fullOrder.length}, 24px) 48px 40px`,
                         gap: 2,
                         padding: "4px 0",
                         borderTop: `1px solid ${dm.border}`,
@@ -1075,11 +1142,11 @@ export default function ScorecardPage() {
                     </div>
                   ),
                 )}
+
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "1fr repeat(" + fullOrder.length + ", 24px) 48px 36px",
+                    gridTemplateColumns: `120px repeat(${fullOrder.length}, 24px) 48px 40px`,
                     gap: 2,
                     padding: "4px 0",
                     borderTop: `1px solid ${dm.border}`,
@@ -1115,6 +1182,223 @@ export default function ScorecardPage() {
           </div>
         )}
       </div>
+
+      {/* ── Tag resolution modal ── */}
+      {tagResolution && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "1rem",
+          }}
+        >
+          <div
+            style={{
+              background: dm.card,
+              borderRadius: 16,
+              padding: "1.5rem",
+              width: "100%",
+              maxWidth: 480,
+              maxHeight: "80vh",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                color: dm.text,
+                marginBottom: 4,
+              }}
+            >
+              🏷️ Tag resolution
+            </div>
+            <div
+              style={{ fontSize: 14, color: dm.sub, marginBottom: "1.25rem" }}
+            >
+              Based on final scores — lowest score wins the lowest tag number.
+            </div>
+
+            {/* Final standings */}
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: dm.sub,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  marginBottom: 8,
+                }}
+              >
+                Final standings
+              </div>
+              {tagResolution.allPlayers.map((p, i) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 0",
+                    borderBottom: `1px solid ${dm.border}`,
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: "#1d6b3a",
+                        width: 24,
+                        textAlign: "center",
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span
+                      style={{ fontSize: 15, fontWeight: 600, color: dm.text }}
+                    >
+                      {p.nickname || p.full_name}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div
+                      style={{ fontSize: 15, fontWeight: 700, color: dm.text }}
+                    >
+                      {p.total} strokes
+                    </div>
+                    <div style={{ fontSize: 12, color: dm.sub }}>
+                      Current tag #{p.bag_tag_number}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tag changes */}
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: dm.sub,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  marginBottom: 8,
+                }}
+              >
+                Tag changes
+              </div>
+              {tagResolution.changes.length === 0 ? (
+                <div
+                  style={{
+                    background: d ? "#1a3d1a" : "#f0faf4",
+                    borderRadius: 8,
+                    padding: "0.75rem",
+                    fontSize: 14,
+                    color: "#16a34a",
+                    fontWeight: 500,
+                  }}
+                >
+                  ✓ No changes — all players keep their current tags.
+                </div>
+              ) : (
+                tagResolution.changes.map((c) => (
+                  <div
+                    key={c.playerId}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "10px 0",
+                      borderBottom: `1px solid ${dm.border}`,
+                    }}
+                  >
+                    <span
+                      style={{ fontSize: 15, fontWeight: 600, color: dm.text }}
+                    >
+                      {c.name}
+                    </span>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 10 }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: dm.sub,
+                          textDecoration: "line-through",
+                        }}
+                      >
+                        #{c.oldTag}
+                      </span>
+                      <span style={{ fontSize: 16, color: dm.sub }}>→</span>
+                      <span
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 800,
+                          color: "#1d6b3a",
+                        }}
+                      >
+                        #{c.newTag}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "0.875rem",
+                  background: dm.input,
+                  color: dm.text,
+                  border: `1.5px solid ${dm.border}`,
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+                onClick={declineTagChanges}
+                disabled={confirmingTags}
+              >
+                Skip changes
+              </button>
+              <button
+                style={{
+                  flex: 2,
+                  padding: "0.875rem",
+                  background: "#1d6b3a",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+                onClick={confirmTagChanges}
+                disabled={confirmingTags}
+              >
+                {confirmingTags
+                  ? "Saving…"
+                  : tagResolution.changes.length === 0
+                    ? "Finish round ✓"
+                    : `Confirm ${tagResolution.changes.length} change${tagResolution.changes.length > 1 ? "s" : ""} ✓`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
