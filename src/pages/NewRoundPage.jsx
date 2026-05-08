@@ -1,67 +1,77 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../hooks/useAuth'
-import Layout from '../components/shared/Layout'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
+import Layout from "../components/shared/Layout";
 
-const STEPS = ['Course', 'Layout', 'Players', 'Start']
+const STEPS = ["Course", "Layout", "Players", "Start"];
 
 export default function NewRoundPage() {
-  const { user, profile } = useAuth()
-  const navigate = useNavigate()
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
 
-  const [step, setStep] = useState(0)
-  const [courses, setCourses] = useState([])
-  const [layouts, setLayouts] = useState([])
-  const [members, setMembers] = useState([])
+  const [step, setStep] = useState(0);
+  const [courses, setCourses] = useState([]);
+  const [layouts, setLayouts] = useState([]);
+  const [members, setMembers] = useState([]);
 
-  const [selectedCourse, setSelectedCourse] = useState(null)
-  const [selectedLayout, setSelectedLayout] = useState(null)
-  const [startingHole, setStartingHole] = useState(1)
-  const [format, setFormat] = useState('strokeplay')
-  const [selectedPlayers, setSelectedPlayers] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedLayout, setSelectedLayout] = useState(null);
+  const [startingHole, setStartingHole] = useState(1);
+  const [format, setFormat] = useState("strokeplay");
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Load courses on mount
   useEffect(() => {
-    supabase.from('courses').select('*').order('name')
-      .then(({ data }) => setCourses(data ?? []))
-  }, [])
+    supabase
+      .from("courses")
+      .select("*")
+      .order("name")
+      .then(({ data }) => setCourses(data ?? []));
+  }, []);
 
   // Load layouts when course selected
   useEffect(() => {
-    if (!selectedCourse) return
-    supabase.from('layouts').select('*').eq('course_id', selectedCourse.id).order('layout_name')
-      .then(({ data }) => setLayouts(data ?? []))
-    setSelectedLayout(null)
-    setStartingHole(1)
-  }, [selectedCourse])
+    if (!selectedCourse) return;
+    supabase
+      .from("layouts")
+      .select("*")
+      .eq("course_id", selectedCourse.id)
+      .order("layout_name")
+      .then(({ data }) => setLayouts(data ?? []));
+    setSelectedLayout(null);
+    setStartingHole(1);
+  }, [selectedCourse]);
 
   // Load members when reaching players step
   useEffect(() => {
-    if (step !== 2) return
-    supabase.from('profiles').select('id, full_name').order('full_name')
+    if (step !== 2) return;
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .order("full_name")
       .then(({ data }) => {
         // Pre-select the scorer themselves
-        setMembers(data ?? [])
-        setSelectedPlayers(prev => prev.length ? prev : [user.id])
-      })
-  }, [step])
+        setMembers(data ?? []);
+        setSelectedPlayers((prev) => (prev.length ? prev : [user.id]));
+      });
+  }, [step]);
 
   function togglePlayer(id) {
-    setSelectedPlayers(prev =>
-      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
-    )
+    setSelectedPlayers((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
   }
 
   async function startRound() {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
       // Create the round
       const { data: round, error: roundErr } = await supabase
-        .from('rounds')
+        .from("rounds")
         .insert({
           course_id: selectedCourse.id,
           layout_id: selectedLayout.id,
@@ -70,31 +80,48 @@ export default function NewRoundPage() {
           created_by: user.id,
         })
         .select()
-        .single()
+        .single();
 
-      if (roundErr) throw roundErr
+      if (roundErr) throw roundErr;
 
       // Add players
-      const playerRows = selectedPlayers.map(pid => ({ round_id: round.id, player_id: pid }))
-      const { error: playersErr } = await supabase.from('round_players').insert(playerRows)
-      if (playersErr) throw playersErr
+      const playerRows = selectedPlayers.map((pid) => ({
+        round_id: round.id,
+        player_id: pid,
+      }));
+      const { error: playersErr } = await supabase
+        .from("round_players")
+        .insert(playerRows);
+      if (playersErr) throw playersErr;
 
-      navigate(`/round/${round.id}`)
+      navigate(`/round/${round.id}`);
     } catch (err) {
-      setError(err.message)
-      setLoading(false)
+      setError(err.message);
+      setLoading(false);
     }
   }
 
-  const totalHoles = selectedLayout ? selectedLayout.number_of_holes * selectedLayout.loops : 0
+  const totalHoles = selectedLayout
+    ? selectedLayout.number_of_holes * selectedLayout.loops
+    : 0;
 
   return (
     <Layout title="New round">
       {/* Step indicator */}
       <div style={styles.steps}>
         {STEPS.map((s, i) => (
-          <div key={s} style={{ ...styles.stepItem, ...(i === step ? styles.stepActive : i < step ? styles.stepDone : {}) }}>
-            <div style={styles.stepDot}>{i < step ? '✓' : i + 1}</div>
+          <div
+            key={s}
+            style={{
+              ...styles.stepItem,
+              ...(i === step
+                ? styles.stepActive
+                : i < step
+                  ? styles.stepDone
+                  : {}),
+            }}
+          >
+            <div style={styles.stepDot}>{i < step ? "✓" : i + 1}</div>
             <span style={styles.stepLabel}>{s}</span>
           </div>
         ))}
@@ -105,17 +132,33 @@ export default function NewRoundPage() {
         {step === 0 && (
           <div>
             <h2 style={styles.stepTitle}>Select a course</h2>
-            {courses.length === 0 && <p style={styles.empty}>No courses set up yet. Ask an admin to add one.</p>}
+            {courses.length === 0 && (
+              <p style={styles.empty}>
+                No courses set up yet. Ask an admin to add one.
+              </p>
+            )}
             <div style={styles.list}>
-              {courses.map(c => (
-                <button key={c.id} style={{ ...styles.listItem, ...(selectedCourse?.id === c.id ? styles.listItemActive : {}) }}
-                  onClick={() => setSelectedCourse(c)}>
+              {courses.map((c) => (
+                <button
+                  key={c.id}
+                  style={{
+                    ...styles.listItem,
+                    ...(selectedCourse?.id === c.id
+                      ? styles.listItemActive
+                      : {}),
+                  }}
+                  onClick={() => setSelectedCourse(c)}
+                >
                   <strong>{c.name}</strong>
                   {c.location && <span style={styles.sub}>{c.location}</span>}
                 </button>
               ))}
             </div>
-            <button style={styles.nextBtn} disabled={!selectedCourse} onClick={() => setStep(1)}>
+            <button
+              style={styles.nextBtn}
+              disabled={!selectedCourse}
+              onClick={() => setStep(1)}
+            >
               Next →
             </button>
           </div>
@@ -126,11 +169,27 @@ export default function NewRoundPage() {
           <div>
             <h2 style={styles.stepTitle}>Select layout</h2>
             <div style={styles.list}>
-              {layouts.map(l => (
-                <button key={l.id} style={{ ...styles.listItem, ...(selectedLayout?.id === l.id ? styles.listItemActive : {}) }}
-                  onClick={() => { setSelectedLayout(l); setStartingHole(1) }}>
+              {layouts.map((l) => (
+                <button
+                  key={l.id}
+                  style={{
+                    ...styles.listItem,
+                    ...(selectedLayout?.id === l.id
+                      ? styles.listItemActive
+                      : {}),
+                  }}
+                  onClick={() => {
+                    setSelectedLayout(l);
+                    setStartingHole(1);
+                  }}
+                >
                   <strong>{l.layout_name}</strong>
-                  <span style={styles.sub}>{l.number_of_holes} holes{l.loops > 1 ? ` × ${l.loops} loops = ${l.number_of_holes * l.loops} total` : ''}</span>
+                  <span style={styles.sub}>
+                    {l.number_of_holes} holes
+                    {l.loops > 1
+                      ? ` × ${l.loops} loops = ${l.number_of_holes * l.loops} total`
+                      : ""}
+                  </span>
                 </button>
               ))}
             </div>
@@ -138,17 +197,32 @@ export default function NewRoundPage() {
             {selectedLayout && (
               <>
                 <label style={styles.label}>Starting hole</label>
-                <select style={styles.select} value={startingHole} onChange={e => setStartingHole(Number(e.target.value))}>
-                  {Array.from({ length: selectedLayout.number_of_holes }, (_, i) => i + 1).map(h => (
-                    <option key={h} value={h}>Hole {h}</option>
+                <select
+                  style={styles.select}
+                  value={startingHole}
+                  onChange={(e) => setStartingHole(Number(e.target.value))}
+                >
+                  {Array.from(
+                    { length: selectedLayout.number_of_holes },
+                    (_, i) => i + 1,
+                  ).map((h) => (
+                    <option key={h} value={h}>
+                      Hole {h}
+                    </option>
                   ))}
                 </select>
 
                 <label style={styles.label}>Format</label>
                 <div style={styles.formatRow}>
-                  {['strokeplay', 'matchplay'].map(f => (
-                    <button key={f} style={{ ...styles.formatBtn, ...(format === f ? styles.formatBtnActive : {}) }}
-                      onClick={() => setFormat(f)}>
+                  {["strokeplay", "matchplay"].map((f) => (
+                    <button
+                      key={f}
+                      style={{
+                        ...styles.formatBtn,
+                        ...(format === f ? styles.formatBtnActive : {}),
+                      }}
+                      onClick={() => setFormat(f)}
+                    >
                       {f.charAt(0).toUpperCase() + f.slice(1)}
                     </button>
                   ))}
@@ -157,8 +231,16 @@ export default function NewRoundPage() {
             )}
 
             <div style={styles.navRow}>
-              <button style={styles.backBtn} onClick={() => setStep(0)}>← Back</button>
-              <button style={styles.nextBtn} disabled={!selectedLayout} onClick={() => setStep(2)}>Next →</button>
+              <button style={styles.backBtn} onClick={() => setStep(0)}>
+                ← Back
+              </button>
+              <button
+                style={styles.nextBtn}
+                disabled={!selectedLayout}
+                onClick={() => setStep(2)}
+              >
+                Next →
+              </button>
             </div>
           </div>
         )}
@@ -167,19 +249,62 @@ export default function NewRoundPage() {
         {step === 2 && (
           <div>
             <h2 style={styles.stepTitle}>Confirm players</h2>
-            <p style={styles.hint}>You are the scorer. Select everyone in the group.</p>
+            {format === "matchplay" ? (
+              <p style={styles.hint}>
+                Matchplay requires exactly 2 players. Select your opponent.
+              </p>
+            ) : (
+              <p style={styles.hint}>
+                You are the scorer. Select everyone in the group.
+              </p>
+            )}
             <div style={styles.list}>
-              {members.map(m => (
-                <button key={m.id} style={{ ...styles.listItem, ...(selectedPlayers.includes(m.id) ? styles.listItemActive : {}) }}
-                  onClick={() => togglePlayer(m.id)}>
-                  {m.full_name}
-                  {m.id === user.id && <span style={styles.youBadge}>You</span>}
-                </button>
-              ))}
+              {members.map((m) => {
+                const selected = selectedPlayers.includes(m.id);
+                const isMe = m.id === user.id;
+                const matchplayFull =
+                  format === "matchplay" &&
+                  selectedPlayers.length >= 2 &&
+                  !selected;
+                return (
+                  <button
+                    key={m.id}
+                    style={{
+                      ...styles.listItem,
+                      ...(selected ? styles.listItemActive : {}),
+                      ...(matchplayFull ? { opacity: 0.4 } : {}),
+                    }}
+                    disabled={matchplayFull}
+                    onClick={() => togglePlayer(m.id)}
+                  >
+                    {m.nickname || m.full_name}
+                    {isMe && <span style={styles.youBadge}>You</span>}
+                  </button>
+                );
+              })}
             </div>
+            {format === "matchplay" && selectedPlayers.length !== 2 && (
+              <p
+                style={{ color: "#dc2626", fontSize: 13, margin: "0 0 0.5rem" }}
+              >
+                Select exactly 2 players
+              </p>
+            )}
             <div style={styles.navRow}>
-              <button style={styles.backBtn} onClick={() => setStep(1)}>← Back</button>
-              <button style={styles.nextBtn} disabled={selectedPlayers.length === 0} onClick={() => setStep(3)}>Next →</button>
+              <button style={styles.backBtn} onClick={() => setStep(1)}>
+                ← Back
+              </button>
+              <button
+                style={styles.nextBtn}
+                disabled={
+                  format === "matchplay"
+                    ? selectedPlayers.length !== 2
+                    : selectedPlayers.length === 0
+                }
+                onClick={() => setStep(3)}
+              >
+                Next →
+              </button>
             </div>
           </div>
         )}
@@ -189,55 +314,207 @@ export default function NewRoundPage() {
           <div>
             <h2 style={styles.stepTitle}>Ready to start</h2>
             <div style={styles.summary}>
-              <div style={styles.summaryRow}><span>Course</span><strong>{selectedCourse?.name}</strong></div>
-              <div style={styles.summaryRow}><span>Layout</span><strong>{selectedLayout?.layout_name}</strong></div>
-              <div style={styles.summaryRow}><span>Holes</span><strong>{totalHoles} ({selectedLayout?.number_of_holes} hole{selectedLayout?.loops > 1 ? ` × ${selectedLayout?.loops}` : ''})</strong></div>
-              <div style={styles.summaryRow}><span>Starting hole</span><strong>Hole {startingHole}</strong></div>
-              <div style={styles.summaryRow}><span>Format</span><strong style={{ textTransform: 'capitalize' }}>{format}</strong></div>
+              <div style={styles.summaryRow}>
+                <span>Course</span>
+                <strong>{selectedCourse?.name}</strong>
+              </div>
+              <div style={styles.summaryRow}>
+                <span>Layout</span>
+                <strong>{selectedLayout?.layout_name}</strong>
+              </div>
+              <div style={styles.summaryRow}>
+                <span>Holes</span>
+                <strong>
+                  {totalHoles} ({selectedLayout?.number_of_holes} hole
+                  {selectedLayout?.loops > 1
+                    ? ` × ${selectedLayout?.loops}`
+                    : ""}
+                  )
+                </strong>
+              </div>
+              <div style={styles.summaryRow}>
+                <span>Starting hole</span>
+                <strong>Hole {startingHole}</strong>
+              </div>
+              <div style={styles.summaryRow}>
+                <span>Format</span>
+                <strong style={{ textTransform: "capitalize" }}>
+                  {format}
+                </strong>
+              </div>
               <div style={styles.summaryRow}>
                 <span>Players</span>
-                <strong>{members.filter(m => selectedPlayers.includes(m.id)).map(m => m.full_name).join(', ')}</strong>
+                <strong>
+                  {members
+                    .filter((m) => selectedPlayers.includes(m.id))
+                    .map((m) => m.full_name)
+                    .join(", ")}
+                </strong>
               </div>
             </div>
             {error && <p style={styles.error}>{error}</p>}
             <div style={styles.navRow}>
-              <button style={styles.backBtn} onClick={() => setStep(2)}>← Back</button>
-              <button style={{ ...styles.nextBtn, background: '#1d6b3a' }} disabled={loading} onClick={startRound}>
-                {loading ? 'Starting...' : 'Start round 🥏'}
+              <button style={styles.backBtn} onClick={() => setStep(2)}>
+                ← Back
+              </button>
+              <button
+                style={{ ...styles.nextBtn, background: "#1d6b3a" }}
+                disabled={loading}
+                onClick={startRound}
+              >
+                {loading ? "Starting..." : "Start round 🥏"}
               </button>
             </div>
           </div>
         )}
       </div>
     </Layout>
-  )
+  );
 }
 
 const styles = {
-  steps: { display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' },
-  stepItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: 0.4, flex: 1 },
+  steps: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "1.25rem",
+  },
+  stepItem: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 4,
+    opacity: 0.4,
+    flex: 1,
+  },
   stepActive: { opacity: 1 },
   stepDone: { opacity: 0.7 },
-  stepDot: { width: 28, height: 28, borderRadius: '50%', background: '#1d6b3a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 },
-  stepLabel: { fontSize: 11, color: '#374151', fontWeight: 500 },
-  card: { background: '#fff', borderRadius: 12, padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
-  stepTitle: { fontSize: 18, fontWeight: 600, margin: '0 0 1rem', color: '#1a2e1a' },
-  list: { display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '1rem' },
-  listItem: { padding: '0.75rem 1rem', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 },
-  listItemActive: { borderColor: '#1d6b3a', background: '#f0faf4' },
-  sub: { fontSize: 13, color: '#6b7280' },
-  label: { display: 'block', fontSize: 14, fontWeight: 500, color: '#374151', margin: '1rem 0 6px' },
-  select: { width: '100%', padding: '0.625rem 0.75rem', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 15, background: '#fff' },
-  formatRow: { display: 'flex', gap: 8 },
-  formatBtn: { flex: 1, padding: '0.625rem', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 15 },
-  formatBtnActive: { borderColor: '#1d6b3a', background: '#f0faf4', color: '#1d6b3a' },
-  nextBtn: { padding: '0.75rem 1.5rem', background: '#1d6b3a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: 'pointer' },
-  backBtn: { padding: '0.75rem 1rem', background: 'transparent', color: '#374151', border: '1.5px solid #e5e7eb', borderRadius: 8, fontWeight: 500, fontSize: 15, cursor: 'pointer' },
-  navRow: { display: 'flex', justifyContent: 'space-between', marginTop: '1rem' },
-  summary: { display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.5rem' },
-  summaryRow: { display: 'flex', justifyContent: 'space-between', fontSize: 15, borderBottom: '1px solid #f3f4f6', paddingBottom: 8 },
-  hint: { fontSize: 13, color: '#6b7280', marginTop: 0, marginBottom: '0.75rem' },
-  youBadge: { fontSize: 11, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: 4, marginLeft: 6 },
-  empty: { color: '#6b7280', fontSize: 14 },
-  error: { color: '#dc2626', fontSize: 14 },
-}
+  stepDot: {
+    width: 28,
+    height: 28,
+    borderRadius: "50%",
+    background: "#1d6b3a",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  stepLabel: { fontSize: 11, color: "#374151", fontWeight: 500 },
+  card: {
+    background: "#fff",
+    borderRadius: 12,
+    padding: "1.25rem",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  },
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    margin: "0 0 1rem",
+    color: "#1a2e1a",
+  },
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    marginBottom: "1rem",
+  },
+  listItem: {
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    border: "1.5px solid #e5e7eb",
+    background: "#fff",
+    textAlign: "left",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+  listItemActive: { borderColor: "#1d6b3a", background: "#f0faf4" },
+  sub: { fontSize: 13, color: "#6b7280" },
+  label: {
+    display: "block",
+    fontSize: 14,
+    fontWeight: 500,
+    color: "#374151",
+    margin: "1rem 0 6px",
+  },
+  select: {
+    width: "100%",
+    padding: "0.625rem 0.75rem",
+    borderRadius: 8,
+    border: "1.5px solid #d1d5db",
+    fontSize: 15,
+    background: "#fff",
+  },
+  formatRow: { display: "flex", gap: 8 },
+  formatBtn: {
+    flex: 1,
+    padding: "0.625rem",
+    borderRadius: 8,
+    border: "1.5px solid #e5e7eb",
+    background: "#fff",
+    cursor: "pointer",
+    fontWeight: 500,
+    fontSize: 15,
+  },
+  formatBtnActive: {
+    borderColor: "#1d6b3a",
+    background: "#f0faf4",
+    color: "#1d6b3a",
+  },
+  nextBtn: {
+    padding: "0.75rem 1.5rem",
+    background: "#1d6b3a",
+    color: "#fff",
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 15,
+    cursor: "pointer",
+  },
+  backBtn: {
+    padding: "0.75rem 1rem",
+    background: "transparent",
+    color: "#374151",
+    border: "1.5px solid #e5e7eb",
+    borderRadius: 8,
+    fontWeight: 500,
+    fontSize: 15,
+    cursor: "pointer",
+  },
+  navRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginTop: "1rem",
+  },
+  summary: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    marginBottom: "1.5rem",
+  },
+  summaryRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 15,
+    borderBottom: "1px solid #f3f4f6",
+    paddingBottom: 8,
+  },
+  hint: {
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 0,
+    marginBottom: "0.75rem",
+  },
+  youBadge: {
+    fontSize: 11,
+    background: "#dcfce7",
+    color: "#15803d",
+    padding: "1px 6px",
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  empty: { color: "#6b7280", fontSize: 14 },
+  error: { color: "#dc2626", fontSize: 14 },
+};
