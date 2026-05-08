@@ -248,6 +248,43 @@ export default function ScorecardPage() {
         </div>
       </div>
 
+      {/* Cancel round */}
+      <div
+        style={{
+          padding: "0.5rem 1rem 0",
+          maxWidth: 680,
+          margin: "0 auto",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        {isOwner && (
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 13,
+              cursor: "pointer",
+              padding: "2px 0",
+            }}
+            onClick={async () => {
+              if (!confirm("Cancel this round? All scores will be deleted."))
+                return;
+              await supabase.from("scores").delete().eq("round_id", roundId);
+              await supabase
+                .from("round_players")
+                .delete()
+                .eq("round_id", roundId);
+              await supabase.from("rounds").delete().eq("id", roundId);
+              navigate("/");
+            }}
+          >
+            ✕ Cancel round
+          </button>
+        )}
+      </div>
+
       <div style={{ padding: "0.75rem 1rem", maxWidth: 680, margin: "0 auto" }}>
         {/* Current hole card */}
         {hole && (
