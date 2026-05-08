@@ -8,6 +8,7 @@ export default function AdminMembers() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     full_name: "",
+    nickname: "",
     email: "",
     password: "",
     role: "member",
@@ -30,7 +31,13 @@ export default function AdminMembers() {
 
   function startNew() {
     setEditing(null);
-    setForm({ full_name: "", email: "", password: "", role: "member" });
+    setForm({
+      full_name: "",
+      nickname: "",
+      email: "",
+      password: "",
+      role: "member",
+    });
     setShowForm(true);
     setError(null);
     window.scrollTo(0, 0);
@@ -40,6 +47,7 @@ export default function AdminMembers() {
     setEditing(member);
     setForm({
       full_name: member.full_name,
+      nickname: member.nickname ?? "",
       email: member.email,
       password: "",
       role: member.role,
@@ -53,7 +61,13 @@ export default function AdminMembers() {
     setShowForm(false);
     setEditing(null);
     setError(null);
-    setForm({ full_name: "", email: "", password: "", role: "member" });
+    setForm({
+      full_name: "",
+      nickname: "",
+      email: "",
+      password: "",
+      role: "member",
+    });
   }
 
   async function createMember(e) {
@@ -74,21 +88,23 @@ export default function AdminMembers() {
       return;
     }
 
-    if (form.role === "admin") {
-      setTimeout(async () => {
-        await supabase
-          .from("profiles")
-          .update({ role: "admin" })
-          .eq("email", form.email);
-      }, 1500);
-    }
+    // Set nickname and role after trigger fires
+    setTimeout(async () => {
+      await supabase
+        .from("profiles")
+        .update({
+          nickname: form.nickname || null,
+          role: form.role,
+        })
+        .eq("email", form.email);
+    }, 1500);
 
     setSuccess(
       `${form.full_name} added. They can now sign in with their email and password.`,
     );
     cancel();
     setLoading(false);
-    setTimeout(loadMembers, 1000);
+    setTimeout(loadMembers, 2000);
   }
 
   async function updateMember(e) {
@@ -97,10 +113,13 @@ export default function AdminMembers() {
     setError(null);
     setSuccess(null);
 
-    // Update profile fields
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ full_name: form.full_name, role: form.role })
+      .update({
+        full_name: form.full_name,
+        nickname: form.nickname || null,
+        role: form.role,
+      })
       .eq("id", editing.id);
 
     if (profileError) {
@@ -109,28 +128,14 @@ export default function AdminMembers() {
       return;
     }
 
-    // If a new password was entered, update it via admin API
     if (form.password) {
-      const { error: pwError } = await supabase.auth.admin.updateUserById(
-        editing.id,
-        {
-          password: form.password,
-        },
+      setSuccess(
+        `${form.full_name} updated. To change their password go to Supabase → Authentication → Users → ${form.email} → Send password reset.`,
       );
-      // Note: admin.updateUserById requires a service role key
-      // If this fails, direct the admin to reset via Supabase dashboard
-      if (pwError) {
-        setSuccess(
-          `${form.full_name} updated. Note: password change requires Supabase dashboard — go to Authentication → Users → ${form.email} → Reset password.`,
-        );
-        cancel();
-        setLoading(false);
-        loadMembers();
-        return;
-      }
+    } else {
+      setSuccess(`${form.full_name} updated successfully.`);
     }
 
-    setSuccess(`${form.full_name} updated successfully.`);
     cancel();
     setLoading(false);
     loadMembers();
@@ -185,6 +190,21 @@ export default function AdminMembers() {
               setForm((f) => ({ ...f, full_name: e.target.value }))
             }
             placeholder="e.g. Jane Smith"
+          />
+
+          <label style={lbl}>
+            Nickname{" "}
+            <span style={editNote}>
+              (used as display name throughout the app)
+            </span>
+          </label>
+          <input
+            style={inp}
+            value={form.nickname}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, nickname: e.target.value }))
+            }
+            placeholder="e.g. Janie (optional — full name used if blank)"
           />
 
           <label style={lbl}>
@@ -263,9 +283,12 @@ export default function AdminMembers() {
         {members.map((m) => (
           <div key={m.id} style={memberCard}>
             <div style={cardLeft}>
-              <div style={avatar}>{m.full_name?.charAt(0).toUpperCase()}</div>
+              <div style={avatar}>
+                {(m.nickname || m.full_name)?.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <div style={nameStyle}>{m.full_name}</div>
+                <div style={nameStyle}>{m.nickname || m.full_name}</div>
+                {m.nickname && <div style={fullNameStyle}>{m.full_name}</div>}
                 <div style={emailStyle}>{m.email}</div>
               </div>
             </div>
@@ -413,14 +436,8 @@ const avatar = {
   fontSize: 16,
   flexShrink: 0,
 };
-const nameStyle = {
-  fontWeight: 600,
-  fontSize: 15,
-  color: "#1a2e1a",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
+const nameStyle = { fontWeight: 600, fontSize: 15, color: "#1a2e1a" };
+const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
 const emailStyle = { fontSize: 12, color: "#6b7280" };
 const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
 const roleBadge = {

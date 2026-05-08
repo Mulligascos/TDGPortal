@@ -18,14 +18,16 @@ export default function Layout({ children, title }) {
     <div style={styles.shell}>
       {/* Top bar */}
       <header style={styles.header}>
-        <span style={styles.clubName}>🥏 Disc Golf Club</span>
+        <span style={styles.clubName}>🥏 Timaru Disc Golf</span>
         <div style={styles.headerRight}>
           {isAdmin && (
             <Link to="/admin" style={styles.adminLink}>
               Admin
             </Link>
           )}
-          <span style={styles.memberName}>{profile?.full_name}</span>
+          <span style={styles.memberName}>
+            {profile?.nickname || profile?.full_name}
+          </span>
           <button onClick={signOut} style={styles.signOutBtn}>
             Sign out
           </button>
