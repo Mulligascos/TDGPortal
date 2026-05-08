@@ -5,6 +5,7 @@ import Layout from "../../components/shared/Layout";
 export default function AdminMembers() {
   const [members, setMembers] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -25,6 +26,34 @@ export default function AdminMembers() {
       .select("*")
       .order("full_name");
     setMembers(data ?? []);
+  }
+
+  function startNew() {
+    setEditing(null);
+    setForm({ full_name: "", email: "", password: "", role: "member" });
+    setShowForm(true);
+    setError(null);
+    window.scrollTo(0, 0);
+  }
+
+  function startEdit(member) {
+    setEditing(member);
+    setForm({
+      full_name: member.full_name,
+      email: member.email,
+      password: "",
+      role: member.role,
+    });
+    setShowForm(true);
+    setError(null);
+    window.scrollTo(0, 0);
+  }
+
+  function cancel() {
+    setShowForm(false);
+    setEditing(null);
+    setError(null);
+    setForm({ full_name: "", email: "", password: "", role: "member" });
   }
 
   async function createMember(e) {
@@ -57,18 +86,53 @@ export default function AdminMembers() {
     setSuccess(
       `${form.full_name} added. They can now sign in with their email and password.`,
     );
-    setForm({ full_name: "", email: "", password: "", role: "member" });
-    setShowForm(false);
+    cancel();
     setLoading(false);
     setTimeout(loadMembers, 1000);
   }
 
-  async function toggleRole(member) {
-    const newRole = member.role === "admin" ? "member" : "admin";
-    await supabase
+  async function updateMember(e) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    // Update profile fields
+    const { error: profileError } = await supabase
       .from("profiles")
-      .update({ role: newRole })
-      .eq("id", member.id);
+      .update({ full_name: form.full_name, role: form.role })
+      .eq("id", editing.id);
+
+    if (profileError) {
+      setError(profileError.message);
+      setLoading(false);
+      return;
+    }
+
+    // If a new password was entered, update it via admin API
+    if (form.password) {
+      const { error: pwError } = await supabase.auth.admin.updateUserById(
+        editing.id,
+        {
+          password: form.password,
+        },
+      );
+      // Note: admin.updateUserById requires a service role key
+      // If this fails, direct the admin to reset via Supabase dashboard
+      if (pwError) {
+        setSuccess(
+          `${form.full_name} updated. Note: password change requires Supabase dashboard — go to Authentication → Users → ${form.email} → Reset password.`,
+        );
+        cancel();
+        setLoading(false);
+        loadMembers();
+        return;
+      }
+    }
+
+    setSuccess(`${form.full_name} updated successfully.`);
+    cancel();
+    setLoading(false);
     loadMembers();
   }
 
@@ -101,17 +165,16 @@ export default function AdminMembers() {
 
       <button
         style={addBtn}
-        onClick={() => {
-          setShowForm((s) => !s);
-          setError(null);
-        }}
+        onClick={() => (showForm && !editing ? cancel() : startNew())}
       >
-        {showForm ? "Cancel" : "+ Add member"}
+        {showForm && !editing ? "Cancel" : "+ Add member"}
       </button>
 
       {showForm && (
-        <form onSubmit={createMember} style={formCard}>
-          <h3 style={formTitle}>New member</h3>
+        <form onSubmit={editing ? updateMember : createMember} style={formCard}>
+          <h3 style={formTitle}>
+            {editing ? `Edit — ${editing.full_name}` : "New member"}
+          </h3>
 
           <label style={lbl}>Full name</label>
           <input
@@ -124,26 +187,36 @@ export default function AdminMembers() {
             placeholder="e.g. Jane Smith"
           />
 
-          <label style={lbl}>Email</label>
+          <label style={lbl}>
+            Email {editing && <span style={editNote}>(cannot be changed)</span>}
+          </label>
           <input
-            style={inp}
+            style={{ ...inp, ...(editing ? disabledInp : {}) }}
             type="email"
             required
             value={form.email}
+            disabled={!!editing}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             placeholder="jane@example.com"
           />
 
-          <label style={lbl}>Password</label>
+          <label style={lbl}>
+            {editing ? "New password " : "Password "}
+            {editing && (
+              <span style={editNote}>(leave blank to keep current)</span>
+            )}
+          </label>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               style={{ ...inp, flex: 1 }}
-              required
+              required={!editing}
               value={form.password}
               onChange={(e) =>
                 setForm((f) => ({ ...f, password: e.target.value }))
               }
-              placeholder="Min 6 characters"
+              placeholder={
+                editing ? "Leave blank to keep current" : "Min 6 characters"
+              }
             />
             <button
               type="button"
@@ -172,9 +245,14 @@ export default function AdminMembers() {
             <option value="admin">Admin</option>
           </select>
 
-          <button type="submit" disabled={loading} style={submitBtn}>
-            {loading ? "Creating…" : "Create member"}
-          </button>
+          <div style={btnRow}>
+            <button type="button" style={cancelBtn} onClick={cancel}>
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} style={submitBtn}>
+              {loading ? "Saving…" : editing ? "Save changes" : "Create member"}
+            </button>
+          </div>
         </form>
       )}
 
@@ -203,8 +281,8 @@ export default function AdminMembers() {
               >
                 {m.role}
               </span>
-              <button style={roleToggle} onClick={() => toggleRole(m)}>
-                {m.role === "admin" ? "→ Member" : "→ Admin"}
+              <button style={editBtn} onClick={() => startEdit(m)}>
+                ✏️ Edit
               </button>
               <button style={deleteBtn} onClick={() => deleteMember(m)}>
                 🗑
@@ -245,6 +323,7 @@ const formTitle = {
   color: "#1a2e1a",
 };
 const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
+const editNote = { fontSize: 11, color: "#9ca3af", fontWeight: 400 };
 const inp = {
   padding: "0.625rem 0.75rem",
   borderRadius: 8,
@@ -254,6 +333,7 @@ const inp = {
   boxSizing: "border-box",
   background: "#fff",
 };
+const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
 const genBtn = {
   padding: "0.625rem 0.875rem",
   background: "#f3f4f6",
@@ -271,16 +351,31 @@ const pwHint = {
   borderRadius: 6,
   lineHeight: 1.5,
 };
+const btnRow = {
+  display: "flex",
+  gap: 8,
+  justifyContent: "flex-end",
+  marginTop: 4,
+};
 const submitBtn = {
-  padding: "0.75rem",
+  padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
   color: "#fff",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
-  fontSize: 15,
+  fontSize: 14,
   cursor: "pointer",
-  marginTop: 4,
+};
+const cancelBtn = {
+  padding: "0.625rem 1.25rem",
+  background: "#f3f4f6",
+  color: "#374151",
+  border: "none",
+  borderRadius: 8,
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
 };
 const memberCard = {
   background: "#fff",
@@ -336,15 +431,14 @@ const roleBadge = {
 };
 const adminBadge = { background: "#ede9fe", color: "#7c3aed" };
 const memberBadge = { background: "#f3f4f6", color: "#6b7280" };
-const roleToggle = {
-  fontSize: 11,
+const editBtn = {
+  fontSize: 12,
   padding: "2px 8px",
   borderRadius: 4,
   border: "1px solid #e5e7eb",
   background: "#fff",
   cursor: "pointer",
   color: "#374151",
-  whiteSpace: "nowrap",
 };
 const deleteBtn = {
   padding: "2px 6px",
