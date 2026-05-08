@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 import Layout from "../../components/shared/Layout";
+import { useDarkMode } from "../../hooks/useDarkMode";
+import { getTheme } from "../../lib/theme";
 
 export default function AdminAnnouncements() {
   const { user } = useAuth();
@@ -11,6 +13,8 @@ export default function AdminAnnouncements() {
   const [form, setForm] = useState({ title: "", body: "", pinned: false });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { darkMode } = useDarkMode();
+  const t = getTheme(darkMode);
 
   useEffect(() => {
     loadAnnouncements();
@@ -60,14 +64,12 @@ export default function AdminAnnouncements() {
       }
       setSuccess("Announcement updated!");
     } else {
-      const { error } = await supabase
-        .from("announcements")
-        .insert({
-          title: form.title,
-          body: form.body,
-          pinned: form.pinned,
-          author_id: user.id,
-        });
+      const { error } = await supabase.from("announcements").insert({
+        title: form.title,
+        body: form.body,
+        pinned: form.pinned,
+        author_id: user.id,
+      });
       if (error) {
         setError(error.message);
         return;

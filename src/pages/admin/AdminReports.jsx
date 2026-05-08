@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../hooks/useAuth";
 import Layout from "../../components/shared/Layout";
+import { useDarkMode } from "../../hooks/useDarkMode";
+import { getTheme } from "../../lib/theme";
 
 const TYPE_LABELS = {
   hazard: "⚠️ Hazard",
@@ -21,6 +23,8 @@ export default function AdminReports() {
   const [reports, setReports] = useState([]);
   const [filter, setFilter] = useState("open");
   const [updating, setUpdating] = useState(null);
+  const { darkMode } = useDarkMode();
+  const t = getTheme(darkMode);
 
   useEffect(() => {
     loadReports();

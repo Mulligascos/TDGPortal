@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabase";
 import Layout from "../../components/shared/Layout";
+import { useDarkMode } from "../../hooks/useDarkMode";
+import { getTheme } from "../../lib/theme";
 
 export default function AdminBagTags() {
   const [members, setMembers] = useState([]);
@@ -8,6 +10,8 @@ export default function AdminBagTags() {
   const [tagInput, setTagInput] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const { darkMode } = useDarkMode();
+  const t = getTheme(darkMode);
 
   useEffect(() => {
     loadMembers();

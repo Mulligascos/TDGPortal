@@ -81,7 +81,8 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#f0f4f0",
+    background:
+      localStorage.getItem("darkMode") === "true" ? "#000011" : "#f0f4f0",
     padding: "1rem",
   },
   card: {
