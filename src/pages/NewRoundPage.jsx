@@ -7,7 +7,7 @@ import Layout from "../components/shared/Layout";
 const STEPS = ["Course", "Layout", "Players", "Start"];
 
 export default function NewRoundPage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
@@ -51,20 +51,32 @@ export default function NewRoundPage() {
     if (step !== 2) return;
     supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, nickname, bag_tag_number")
       .order("full_name")
       .then(({ data }) => {
-        // Pre-select the scorer themselves
         setMembers(data ?? []);
+        // Pre-select the scorer
         setSelectedPlayers((prev) => (prev.length ? prev : [user.id]));
       });
   }, [step]);
+
+  // Reset play for tags if format changes or fewer than 2 players
+  useEffect(() => {
+    if (format === "matchplay" || selectedPlayers.length < 2) {
+      setPlayForTags(false);
+    }
+  }, [format, selectedPlayers]);
 
   function togglePlayer(id) {
     setSelectedPlayers((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
     );
   }
+
+  // How many selected players actually have bag tags
+  const taggedSelectedCount = members.filter(
+    (m) => selectedPlayers.includes(m.id) && m.bag_tag_number != null,
+  ).length;
 
   async function startRound() {
     setLoading(true);
@@ -86,14 +98,16 @@ export default function NewRoundPage() {
 
       if (roundErr) throw roundErr;
 
-      // Add players
+      // Add ALL selected players to round_players
       const playerRows = selectedPlayers.map((pid) => ({
         round_id: round.id,
         player_id: pid,
       }));
+
       const { error: playersErr } = await supabase
         .from("round_players")
         .insert(playerRows);
+
       if (playersErr) throw playersErr;
 
       navigate(`/round/${round.id}`);
@@ -166,7 +180,7 @@ export default function NewRoundPage() {
           </div>
         )}
 
-        {/* STEP 1: Select layout + starting hole + format */}
+        {/* STEP 1: Layout + starting hole + format */}
         {step === 1 && (
           <div>
             <h2 style={styles.stepTitle}>Select layout</h2>
@@ -257,33 +271,10 @@ export default function NewRoundPage() {
               </p>
             ) : (
               <p style={styles.hint}>
-                You are the scorer. Select everyone in the group.
+                Select all players in the group. You are the scorer.
               </p>
             )}
-            {format === "strokeplay" && selectedPlayers.length >= 2 && (
-              <label style={styles.toggleRow}>
-                <div
-                  style={{
-                    ...styles.toggle,
-                    ...(playForTags ? styles.toggleOn : {}),
-                  }}
-                  onClick={() => setPlayForTags((t) => !t)}
-                >
-                  <div
-                    style={{
-                      ...styles.toggleThumb,
-                      ...(playForTags ? styles.toggleThumbOn : {}),
-                    }}
-                  />
-                </div>
-                <div>
-                  <div style={styles.toggleLabel}>Play for bag tags</div>
-                  <div style={styles.toggleSub}>
-                    Tags will be reassigned based on final scores
-                  </div>
-                </div>
-              </label>
-            )}
+
             <div style={styles.list}>
               {members.map((m) => {
                 const selected = selectedPlayers.includes(m.id);
@@ -303,19 +294,65 @@ export default function NewRoundPage() {
                     disabled={matchplayFull}
                     onClick={() => togglePlayer(m.id)}
                   >
-                    {m.nickname || m.full_name}
-                    {isMe && <span style={styles.youBadge}>You</span>}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>
+                        {m.nickname || m.full_name}
+                        {isMe && <span style={styles.youBadge}>You</span>}
+                      </span>
+                      {m.bag_tag_number && (
+                        <span style={styles.tagBadge}>
+                          🏷️ #{m.bag_tag_number}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
             </div>
+
+            {/* Play for tags toggle — strokeplay only, 2+ tagged players selected */}
+            {format === "strokeplay" && taggedSelectedCount >= 2 && (
+              <div
+                style={styles.toggleRow}
+                onClick={() => setPlayForTags((t) => !t)}
+              >
+                <div
+                  style={{
+                    ...styles.toggle,
+                    ...(playForTags ? styles.toggleOn : {}),
+                  }}
+                >
+                  <div
+                    style={{
+                      ...styles.toggleThumb,
+                      ...(playForTags ? styles.toggleThumbOn : {}),
+                    }}
+                  />
+                </div>
+                <div>
+                  <div style={styles.toggleLabel}>Play for bag tags</div>
+                  <div style={styles.toggleSub}>
+                    {taggedSelectedCount} tagged players — tags reassigned by
+                    final score
+                  </div>
+                </div>
+              </div>
+            )}
+
             {format === "matchplay" && selectedPlayers.length !== 2 && (
               <p
                 style={{ color: "#dc2626", fontSize: 13, margin: "0 0 0.5rem" }}
               >
-                Select exactly 2 players
+                Select exactly 2 players for matchplay
               </p>
             )}
+
             <div style={styles.navRow}>
               <button style={styles.backBtn} onClick={() => setStep(1)}>
                 ← Back
@@ -351,11 +388,10 @@ export default function NewRoundPage() {
               <div style={styles.summaryRow}>
                 <span>Holes</span>
                 <strong>
-                  {totalHoles} ({selectedLayout?.number_of_holes} hole
+                  {totalHoles}
                   {selectedLayout?.loops > 1
-                    ? ` × ${selectedLayout?.loops}`
+                    ? ` (${selectedLayout?.number_of_holes} × ${selectedLayout?.loops})`
                     : ""}
-                  )
                 </strong>
               </div>
               <div style={styles.summaryRow}>
@@ -373,27 +409,29 @@ export default function NewRoundPage() {
                 <strong>
                   {members
                     .filter((m) => selectedPlayers.includes(m.id))
-                    .map((m) => m.full_name)
+                    .map((m) => m.nickname || m.full_name)
                     .join(", ")}
                 </strong>
               </div>
+              {playForTags && format === "strokeplay" && (
+                <div
+                  style={{
+                    ...styles.summaryRow,
+                    background: "#f0faf4",
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                  }}
+                >
+                  <span>Bag tags</span>
+                  <strong style={{ color: "#1d6b3a" }}>
+                    🏷️ Playing for tags
+                  </strong>
+                </div>
+              )}
             </div>
-            {playForTags && format === "strokeplay" && (
-              <div
-                style={{
-                  ...styles.summaryRow,
-                  background: "#f0faf4",
-                  borderRadius: 6,
-                  padding: "6px 8px",
-                }}
-              >
-                <span>Bag tags</span>
-                <strong style={{ color: "#1d6b3a" }}>
-                  🏷️ Playing for tags
-                </strong>
-              </div>
-            )}
+
             {error && <p style={styles.error}>{error}</p>}
+
             <div style={styles.navRow}>
               <button style={styles.backBtn} onClick={() => setStep(2)}>
                 ← Back
@@ -470,6 +508,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: 2,
+    width: "100%",
   },
   listItemActive: { borderColor: "#1d6b3a", background: "#f0faf4" },
   sub: { fontSize: 13, color: "#6b7280" },
@@ -487,8 +526,9 @@ const styles = {
     border: "1.5px solid #d1d5db",
     fontSize: 15,
     background: "#fff",
+    marginBottom: 4,
   },
-  formatRow: { display: "flex", gap: 8 },
+  formatRow: { display: "flex", gap: 8, marginBottom: 4 },
   formatBtn: {
     flex: 1,
     padding: "0.625rem",
@@ -556,6 +596,7 @@ const styles = {
     borderRadius: 4,
     marginLeft: 6,
   },
+  tagBadge: { fontSize: 12, color: "#1d6b3a", fontWeight: 600 },
   empty: { color: "#6b7280", fontSize: 14 },
   error: { color: "#dc2626", fontSize: 14 },
   toggleRow: {
@@ -564,9 +605,10 @@ const styles = {
     gap: 12,
     background: "#f0faf4",
     borderRadius: 10,
-    padding: "0.75rem",
-    marginBottom: "0.5rem",
+    padding: "0.875rem",
+    marginBottom: "0.75rem",
     cursor: "pointer",
+    border: "1.5px solid #bbf7d0",
   },
   toggle: {
     width: 44,
@@ -576,7 +618,6 @@ const styles = {
     position: "relative",
     flexShrink: 0,
     transition: "background 0.2s",
-    cursor: "pointer",
   },
   toggleOn: { background: "#1d6b3a" },
   toggleThumb: {
