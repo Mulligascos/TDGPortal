@@ -80,7 +80,12 @@ export default function AdminMembers() {
     setError(null);
     setSuccess(null);
 
-    const { error } = await supabase.auth.signUp({
+    // Save current admin session before creating new user
+    const {
+      data: { session: adminSession },
+    } = await supabase.auth.getSession();
+
+    const { data, error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: { data: { full_name: form.full_name } },
@@ -92,7 +97,15 @@ export default function AdminMembers() {
       return;
     }
 
-    // Set nickname and role after trigger fires
+    // Immediately restore the admin session
+    if (adminSession) {
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      });
+    }
+
+    // Update nickname and role after trigger fires
     setTimeout(async () => {
       await supabase
         .from("profiles")
