@@ -19,7 +19,7 @@ export function HistoryPage() {
       .from("round_players")
       .select("round_id")
       .eq("player_id", user.id);
-
+    console.log("userid:", user.id, "participated:", participated, "e1:", e1);
     if (e1) {
       console.error("round_players error:", e1);
       setLoading(false);
@@ -38,7 +38,7 @@ export function HistoryPage() {
       .select(
         "id, played_at, status, format, starting_hole, play_for_tags, courses(name), layouts(layout_name, number_of_holes, loops)",
       )
-      .in("id", roundIds)
+      .in("round_id", roundIds)
       .order("played_at", { ascending: false });
 
     if (e2) console.error("rounds error:", e2);
