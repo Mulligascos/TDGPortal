@@ -499,42 +499,46 @@ export default function ScorecardPage() {
           </div>
         )}
       </div>
-      {/* Back / Cancel button */}
+      {/* Navigation buttons */}
       <div
         style={{
           maxWidth: 680,
-          margin: "0.375rem auto 0",
+          margin: "0.5rem auto 0",
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        {isComplete ? (
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "rgba(255,255,255,0.6)",
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            ← Back
-          </button>
-        ) : isOwner ? (
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: "rgba(255,255,255,0.15)",
+            border: "1px solid rgba(255,255,255,0.3)",
+            color: "#fff",
+            borderRadius: 6,
+            padding: "4px 12px",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          ← Back
+        </button>
+        {isOwner && !isComplete && (
           <button
             onClick={cancelRound}
             style={{
-              background: "none",
-              border: "none",
-              color: "rgba(255,255,255,0.5)",
+              background: "rgba(220,38,38,0.25)",
+              border: "1px solid rgba(220,38,38,0.5)",
+              color: "#fca5a5",
+              borderRadius: 6,
+              padding: "4px 12px",
               fontSize: 12,
               cursor: "pointer",
             }}
           >
             ✕ Cancel round
           </button>
-        ) : null}
+        )}
       </div>
 
       <div style={{ padding: "0.75rem 1rem", maxWidth: 680, margin: "0 auto" }}>
