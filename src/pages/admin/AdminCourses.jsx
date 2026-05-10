@@ -275,7 +275,7 @@ export default function AdminCourses() {
       )}
 
       {courses.length === 0 && (
-        <p style={{ color: "#6b7280" }}>No courses yet. Add one above.</p>
+        <p style={{ color: "t.textSub" }}>No courses yet. Add one above.</p>
       )}
 
       {courses.map((course) => (
@@ -332,7 +332,7 @@ export default function AdminCourses() {
                       margin: "0 0 8px",
                       fontSize: 14,
                       fontWeight: 600,
-                      color: "#1a2e1a",
+                      color: "t.text",
                     }}
                   >
                     {editingLayout
@@ -422,7 +422,7 @@ export default function AdminCourses() {
               {(layouts[course.id] ?? []).length === 0 && (
                 <p
                   style={{
-                    color: "#6b7280",
+                    color: "t.textSub",
                     fontSize: 13,
                     padding: "0.5rem 0",
                   }}
@@ -484,7 +484,7 @@ const formCard = {
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "t.shadow",
   display: "flex",
   flexDirection: "column",
   gap: 8,
@@ -493,13 +493,13 @@ const formTitle = {
   margin: "0 0 0.5rem",
   fontSize: 16,
   fontWeight: 600,
-  color: "#1a2e1a",
+  color: "t.text",
 };
 const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
 const inp = {
   padding: "0.625rem 0.75rem",
   borderRadius: 8,
-  border: "1.5px solid #d1d5db",
+  border: "1.5px solid t.border",
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
@@ -535,7 +535,7 @@ const courseCard = {
   background: "#fff",
   borderRadius: 12,
   marginBottom: 10,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "t.shadow",
   overflow: "hidden",
 };
 const courseHeader = {
@@ -545,9 +545,9 @@ const courseHeader = {
   alignItems: "center",
   cursor: "pointer",
 };
-const courseName = { fontWeight: 700, fontSize: 16, color: "#1a2e1a" };
-const courseLoc = { fontSize: 13, color: "#6b7280", marginTop: 2 };
-const chevron = { fontSize: 12, color: "#6b7280" };
+const courseName = { fontWeight: 700, fontSize: 16, color: "t.text" };
+const courseLoc = { fontSize: 13, color: "t.textSub", marginTop: 2 };
+const chevron = { fontSize: 12, color: "t.textSub" };
 const layoutsSection = {
   borderTop: "1px solid #f3f4f6",
   padding: "0.875rem 1rem",
@@ -561,7 +561,7 @@ const layoutsHeader = {
 const layoutsTitle = {
   fontSize: 13,
   fontWeight: 600,
-  color: "#6b7280",
+  color: "t.textSub",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
 };
@@ -591,8 +591,8 @@ const layoutRow = {
   padding: "0.625rem 0",
   borderBottom: "1px solid #f3f4f6",
 };
-const layoutName = { fontWeight: 600, fontSize: 14, color: "#1a2e1a" };
-const layoutSub = { fontSize: 12, color: "#6b7280", marginTop: 2 };
+const layoutName = { fontWeight: 600, fontSize: 14, color: "t.text" };
+const layoutSub = { fontSize: 12, color: "t.textSub", marginTop: 2 };
 const parDisplay = {
   fontSize: 11,
   color: "#9ca3af",
@@ -602,7 +602,7 @@ const parDisplay = {
 const editBtn = {
   padding: "3px 10px",
   background: "#fff",
-  border: "1px solid #d1d5db",
+  border: "1px solid t.border",
   color: "#374151",
   borderRadius: 6,
   fontSize: 12,
@@ -635,4 +635,4 @@ const errorBox = {
   fontSize: 14,
   cursor: "pointer",
 };
-const parHint = { fontSize: 12, color: "#6b7280", margin: 0 };
+const parHint = { fontSize: 12, color: "t.textSub", margin: 0 };

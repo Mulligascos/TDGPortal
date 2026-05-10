@@ -270,7 +270,7 @@ export default function AdminEvents() {
       )}
 
       {upcoming.length === 0 && past.length === 0 && !showForm && (
-        <p style={{ color: "#6b7280" }}>No events yet.</p>
+        <p style={{ color: "t.textSub" }}>No events yet.</p>
       )}
 
       {upcoming.length > 0 && (
@@ -365,7 +365,7 @@ const formCard = {
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "t.shadow",
   display: "flex",
   flexDirection: "column",
   gap: 10,
@@ -374,13 +374,13 @@ const formTitle = {
   margin: "0 0 0.25rem",
   fontSize: 16,
   fontWeight: 600,
-  color: "#1a2e1a",
+  color: "t.text",
 };
 const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
 const inp = {
   padding: "0.625rem 0.75rem",
   borderRadius: 8,
-  border: "1.5px solid #d1d5db",
+  border: "1.5px solid t.border",
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
@@ -392,7 +392,7 @@ const formatBtn = {
   flex: 1,
   padding: "0.625rem",
   borderRadius: 8,
-  border: "1.5px solid #e5e7eb",
+  border: "1.5px solid t.border",
   background: "t.card",
   cursor: "pointer",
   fontWeight: 500,
@@ -427,7 +427,7 @@ const cancelBtn = {
 const sectionHead = {
   fontSize: 12,
   fontWeight: 600,
-  color: "#6b7280",
+  color: "t.textSub",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   margin: "0.75rem 0 0.5rem",
@@ -444,10 +444,10 @@ const cardTop = {
   justifyContent: "space-between",
   marginBottom: 6,
 };
-const cardTitle = { fontWeight: 700, fontSize: 16, color: "#1a2e1a" };
+const cardTitle = { fontWeight: 700, fontSize: 16, color: "t.text" };
 const cardMeta = {
   fontSize: 12,
-  color: "#6b7280",
+  color: "t.textSub",
   marginTop: 2,
   textTransform: "capitalize",
 };
@@ -467,7 +467,7 @@ const cardActions = {
 const actionBtn = {
   padding: "4px 10px",
   background: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  border: "1px solid t.border",
   borderRadius: 6,
   fontSize: 12,
   cursor: "pointer",

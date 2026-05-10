@@ -153,5 +153,5 @@ const card = {
   minHeight: 110,
 };
 const icon = { fontSize: 32 };
-const cardLabel = { fontWeight: 700, fontSize: 15, color: "#1a2e1a" };
-const cardSub = { fontSize: 12, color: "#6b7280", textAlign: "center" };
+const cardLabel = { fontWeight: 700, fontSize: 15, color: "t.text" };
+const cardSub = { fontSize: 12, color: "t.textSub", textAlign: "center" };

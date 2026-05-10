@@ -85,7 +85,7 @@ export default function AdminReports() {
       </div>
 
       {reports.length === 0 && (
-        <p style={{ color: "#6b7280" }}>
+        <p style={{ color: "t.textSub" }}>
           No {filter === "all" ? "" : filter} reports.
         </p>
       )}
@@ -173,12 +173,12 @@ const tabs = {
 const tab = {
   padding: "0.4rem 0.875rem",
   borderRadius: 20,
-  border: "1.5px solid #e5e7eb",
+  border: "1.5px solid t.border",
   background: "#fff",
   fontSize: 13,
   fontWeight: 500,
   cursor: "pointer",
-  color: "#6b7280",
+  color: "t.textSub",
 };
 const tabActive = {
   borderColor: "#1d6b3a",
@@ -226,7 +226,7 @@ const cardBody = {
   gap: 4,
   marginBottom: 10,
 };
-const cardMeta = { fontSize: 13, color: "#6b7280" };
+const cardMeta = { fontSize: 13, color: "t.textSub" };
 const cardDesc = {
   fontSize: 14,
   color: "#374151",
@@ -243,7 +243,7 @@ const cardActions = {
 const actionBtn = {
   padding: "4px 10px",
   background: "#f9fafb",
-  border: "1px solid #e5e7eb",
+  border: "1px solid t.border",
   borderRadius: 6,
   fontSize: 12,
   cursor: "pointer",

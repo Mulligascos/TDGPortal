@@ -282,7 +282,7 @@ export default function AdminMembers() {
 
       <div style={{ marginTop: "0.5rem" }}>
         {members.length === 0 && (
-          <p style={{ color: "#6b7280" }}>No members yet.</p>
+          <p style={{ color: "t.textSub" }}>No members yet.</p>
         )}
         {members.map((m) => (
           <div key={m.id} style={memberCard}>
@@ -338,7 +338,7 @@ const formCard = {
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  boxShadow: "t.shadow",
   display: "flex",
   flexDirection: "column",
   gap: 10,
@@ -347,14 +347,14 @@ const formTitle = {
   margin: "0 0 0.25rem",
   fontSize: 16,
   fontWeight: 600,
-  color: "#1a2e1a",
+  color: "t.text",
 };
 const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
 const editNote = { fontSize: 11, color: "#9ca3af", fontWeight: 400 };
 const inp = {
   padding: "0.625rem 0.75rem",
   borderRadius: 8,
-  border: "1.5px solid #d1d5db",
+  border: "1.5px solid t.border",
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
@@ -364,7 +364,7 @@ const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
 const genBtn = {
   padding: "0.625rem 0.875rem",
   background: "#f3f4f6",
-  border: "1.5px solid #d1d5db",
+  border: "1.5px solid t.border",
   borderRadius: 8,
   cursor: "pointer",
   fontSize: 13,
@@ -440,9 +440,9 @@ const avatar = {
   fontSize: 16,
   flexShrink: 0,
 };
-const nameStyle = { fontWeight: 600, fontSize: 15, color: "#1a2e1a" };
+const nameStyle = { fontWeight: 600, fontSize: 15, color: "t.text" };
 const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
-const emailStyle = { fontSize: 12, color: "#6b7280" };
+const emailStyle = { fontSize: 12, color: "t.textSub" };
 const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
 const roleBadge = {
   fontSize: 11,
@@ -451,12 +451,12 @@ const roleBadge = {
   borderRadius: 4,
 };
 const adminBadge = { background: "#ede9fe", color: "#7c3aed" };
-const memberBadge = { background: "#f3f4f6", color: "#6b7280" };
+const memberBadge = { background: "#f3f4f6", color: "t.textSub" };
 const editBtn = {
   fontSize: 12,
   padding: "2px 8px",
   borderRadius: 4,
-  border: "1px solid #e5e7eb",
+  border: "1px solid t.border",
   background: "t.card",
   cursor: "pointer",
   color: "#374151",

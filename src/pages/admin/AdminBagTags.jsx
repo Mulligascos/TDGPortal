@@ -196,14 +196,14 @@ function MemberTagRow({
 
 const hint = {
   fontSize: 14,
-  color: "#6b7280",
+  color: "t.textSub",
   marginTop: 0,
   marginBottom: "1rem",
 };
 const sectionHead = {
   fontSize: 12,
   fontWeight: 600,
-  color: "#6b7280",
+  color: "t.textSub",
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   margin: "0.75rem 0 0.5rem",
@@ -226,14 +226,14 @@ const tagNum = {
   width: 40,
   textAlign: "center",
 };
-const name = { fontWeight: 600, fontSize: 15, color: "#1a2e1a" };
-const email = { fontSize: 12, color: "#6b7280" };
+const name = { fontWeight: 600, fontSize: 15, color: "t.text" };
+const email = { fontSize: 12, color: "t.textSub" };
 const editRow = { display: "flex", alignItems: "center", gap: 6 };
 const tagInp = {
   width: 70,
   padding: "0.4rem 0.5rem",
   borderRadius: 6,
-  border: "1.5px solid #d1d5db",
+  border: "1.5px solid t.border",
   fontSize: 15,
   textAlign: "center",
 };
@@ -254,7 +254,7 @@ const cancelBtn = {
   borderRadius: 6,
   fontSize: 13,
   cursor: "pointer",
-  color: "#6b7280",
+  color: "t.textSub",
 };
 const editBtn = {
   padding: "0.4rem 0.875rem",
