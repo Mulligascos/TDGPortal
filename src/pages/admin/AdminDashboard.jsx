@@ -65,7 +65,7 @@ export default function AdminDashboard() {
       icon: "🏷️",
       label: "Bag tags",
       sub: "Assign & track tags",
-      color: "#dcfce7",
+      color: "t.succesLight",
       border: "#16a34a",
       darkColor: "#001a0d",
       darkBorder: "#16a34a",
@@ -95,10 +95,10 @@ export default function AdminDashboard() {
       icon: "🚩",
       label: "Reports",
       sub: `${stats.openReports} open`,
-      color: "#fef2f2",
-      border: "#dc2626",
+      color: "t.dangerLight",
+      border: "t.danger",
       darkColor: "#1a0000",
-      darkBorder: "#dc2626",
+      darkBorder: "t.danger",
     },
   ];
 

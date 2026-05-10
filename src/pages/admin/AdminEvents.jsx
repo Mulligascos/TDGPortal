@@ -339,7 +339,7 @@ function EventCard({ ev, onEdit, onDelete, past }) {
           ✏️ Edit
         </button>
         <button
-          style={{ ...actionBtn, color: "#dc2626" }}
+          style={{ ...actionBtn, color: "t.danger" }}
           onClick={() => onDelete(ev.id)}
         >
           🗑 Delete
@@ -352,7 +352,7 @@ function EventCard({ ev, onEdit, onDelete, past }) {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -361,7 +361,7 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
@@ -384,7 +384,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "#fff",
+  background: "t.input",
   fontFamily: "inherit",
 };
 const formatRow = { display: "flex", gap: 8 };
@@ -393,7 +393,7 @@ const formatBtn = {
   padding: "0.625rem",
   borderRadius: 8,
   border: "1.5px solid #e5e7eb",
-  background: "#fff",
+  background: "t.card",
   cursor: "pointer",
   fontWeight: 500,
   fontSize: 14,
@@ -433,7 +433,7 @@ const sectionHead = {
   margin: "0.75rem 0 0.5rem",
 };
 const card = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1rem",
   marginBottom: 10,
@@ -474,8 +474,8 @@ const actionBtn = {
   color: "#374151",
 };
 const successBox = {
-  background: "#dcfce7",
-  color: "#15803d",
+  background: "t.succesLight",
+  color: "t.success",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -483,8 +483,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "#fef2f2",
-  color: "#dc2626",
+  background: "t.dangerLight",
+  color: "t.danger",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

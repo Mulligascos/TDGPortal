@@ -471,7 +471,7 @@ export default function AdminCourses() {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -480,7 +480,7 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
@@ -503,7 +503,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "#fff",
+  background: "t.input",
 };
 const btnRow = {
   display: "flex",
@@ -514,7 +514,7 @@ const btnRow = {
 const submitBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t,card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -612,14 +612,14 @@ const deleteBtn = {
   padding: "3px 10px",
   background: "#fff",
   border: "1px solid #fca5a5",
-  color: "#dc2626",
+  color: "t.danger",
   borderRadius: 6,
   fontSize: 12,
   cursor: "pointer",
 };
 const successBox = {
-  background: "#dcfce7",
-  color: "#15803d",
+  background: "t.succesLight",
+  color: "t.success",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -627,8 +627,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "#fef2f2",
-  color: "#dc2626",
+  background: "t.dangerLight",
+  color: "t.danger",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

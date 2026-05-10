@@ -209,7 +209,7 @@ const sectionHead = {
   margin: "0.75rem 0 0.5rem",
 };
 const card = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 10,
   padding: "0.75rem 1rem",
   marginBottom: 8,
@@ -240,7 +240,7 @@ const tagInp = {
 const saveBtn = {
   padding: "0.4rem 0.75rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 6,
   fontWeight: 600,
@@ -267,8 +267,8 @@ const editBtn = {
   cursor: "pointer",
 };
 const successBox = {
-  background: "#dcfce7",
-  color: "#15803d",
+  background: "t.succesLight",
+  color: "t.success",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -276,8 +276,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "#fef2f2",
-  color: "#dc2626",
+  background: "t.dangerLight",
+  color: "t.danger",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

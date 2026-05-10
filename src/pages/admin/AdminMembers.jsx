@@ -325,7 +325,7 @@ export default function AdminMembers() {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -334,7 +334,7 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
@@ -358,7 +358,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "#fff",
+  background: "t.card",
 };
 const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
 const genBtn = {
@@ -387,7 +387,7 @@ const btnRow = {
 const submitBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -405,7 +405,7 @@ const cancelBtn = {
   cursor: "pointer",
 };
 const memberCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 10,
   padding: "0.75rem 1rem",
   marginBottom: 8,
@@ -432,7 +432,7 @@ const avatar = {
   height: 36,
   borderRadius: "50%",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -457,21 +457,21 @@ const editBtn = {
   padding: "2px 8px",
   borderRadius: 4,
   border: "1px solid #e5e7eb",
-  background: "#fff",
+  background: "t.card",
   cursor: "pointer",
   color: "#374151",
 };
 const deleteBtn = {
   padding: "2px 6px",
-  background: "#fff",
+  background: "t.card",
   border: "1px solid #fca5a5",
   borderRadius: 6,
   fontSize: 13,
   cursor: "pointer",
 };
 const successBox = {
-  background: "#dcfce7",
-  color: "#15803d",
+  background: "t.succesLight",
+  color: "t.success",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -479,8 +479,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "#fef2f2",
-  color: "#dc2626",
+  background: "t.dangerLight",
+  color: "t.danger",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

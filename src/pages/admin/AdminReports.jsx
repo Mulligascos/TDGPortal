@@ -15,7 +15,7 @@ const TYPE_LABELS = {
 const STATUS_COLOURS = {
   open: { background: "#fef9c3", color: "#a16207" },
   in_progress: { background: "#e0f2fe", color: "#0369a1" },
-  resolved: { background: "#dcfce7", color: "#15803d" },
+  resolved: { background: "t.succesLight", color: "t.success" },
 };
 
 export default function AdminReports() {
@@ -152,7 +152,7 @@ export default function AdminReports() {
               </button>
             )}
             <button
-              style={{ ...actionBtn, color: "#dc2626", marginLeft: "auto" }}
+              style={{ ...actionBtn, color: "t.danger", marginLeft: "auto" }}
               onClick={() => deleteReport(r.id)}
             >
               🗑 Delete

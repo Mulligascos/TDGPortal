@@ -202,7 +202,7 @@ export default function AdminAnnouncements() {
               ✏️ Edit
             </button>
             <button
-              style={{ ...actionBtn, color: "#dc2626" }}
+              style={{ ...actionBtn, color: "t.danger" }}
               onClick={() => deleteAnnouncement(a.id)}
             >
               🗑 Delete
@@ -217,7 +217,7 @@ export default function AdminAnnouncements() {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -226,7 +226,7 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
@@ -249,7 +249,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "#fff",
+  background: "t.card",
   fontFamily: "inherit",
 };
 const checkRow = {
@@ -262,7 +262,7 @@ const btnRow = { display: "flex", gap: 8, justifyContent: "flex-end" };
 const submitBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "#fff",
+  color: "t.card",
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -280,7 +280,7 @@ const cancelBtn = {
   cursor: "pointer",
 };
 const announcementCard = {
-  background: "#fff",
+  background: "t.card",
   borderRadius: 12,
   padding: "1rem",
   marginBottom: 10,
@@ -326,8 +326,8 @@ const actionBtn = {
   color: "#374151",
 };
 const successBox = {
-  background: "#dcfce7",
-  color: "#15803d",
+  background: "t.succesLight",
+  color: "t.success",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -335,8 +335,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "#fef2f2",
-  color: "#dc2626",
+  background: "t.dangerLight",
+  color: "t.danger",
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
