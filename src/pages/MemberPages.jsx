@@ -13,100 +13,269 @@ export function HistoryPage() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
   const [rounds, setRounds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [removing, setRemoving] = useState(null);
+
+  useEffect(() => {
+    load();
+  }, [user.id]);
+
   async function load() {
-    // Step 1: get all round IDs this player participated in
-    const { data: participated, error: e1 } = await supabase
-      .from("round_players")
-      .select("round_id")
-      .eq("player_id", user.id);
-    console.log("userid:", user.id, "participated:", participated, "e1:", e1);
-    if (e1) {
-      console.error("round_players error:", e1);
-      setLoading(false);
-      return;
-    }
-    if (!participated || participated.length === 0) {
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
+    setError(null);
 
-    const roundIds = participated.map((r) => r.round_id);
-
-    // Step 2: fetch round details ordered by played_at on the rounds table
-    const { data, error: e2 } = await supabase
+    // Direct join — avoid the two-step approach entirely
+    const { data, error } = await supabase
       .from("rounds")
       .select(
-        "id, played_at, status, format, starting_hole, play_for_tags, courses(name), layouts(layout_name, number_of_holes, loops)",
+        `
+        id,
+        played_at,
+        status,
+        format,
+        starting_hole,
+        play_for_tags,
+        created_by,
+        courses ( name ),
+        layouts ( layout_name, number_of_holes, loops ),
+        round_players!inner ( player_id )
+      `,
       )
-      .in("round_id", roundIds)
+      .eq("round_players.player_id", user.id)
       .order("played_at", { ascending: false });
 
-    if (e2) console.error("rounds error:", e2);
+    if (error) {
+      console.error("History query error:", error);
+      setError(error.message);
+    }
+
     setRounds(data ?? []);
     setLoading(false);
   }
 
+  async function removeRound(round) {
+    if (!confirm("Remove this round? All scores will be deleted.")) return;
+    setRemoving(round.id);
+    await supabase.from("scores").delete().eq("round_id", round.id);
+    await supabase.from("round_players").delete().eq("round_id", round.id);
+    await supabase.from("rounds").delete().eq("id", round.id);
+    setRemoving(null);
+    load();
+  }
+
+  const inProgress = rounds.filter((r) => r.status === "in_progress");
+  const completed = rounds.filter((r) => r.status === "complete");
+
   return (
     <Layout title="My history">
-      {rounds.length === 0 && (
-        <p style={{ color: t.textSub }}>No rounds yet. Start one!</p>
+      {loading && (
+        <div style={{ textAlign: "center", padding: "2rem", color: t.textSub }}>
+          Loading...
+        </div>
       )}
-      {rounds.map((r) => (
-        <Link
-          key={r.id}
-          to={`/round/${r.id}`}
+
+      {error && (
+        <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            background: t.card,
-            borderRadius: 10,
-            padding: "0.875rem 1rem",
-            marginBottom: 8,
-            textDecoration: "none",
-            boxShadow: t.shadow,
+            background: t.dangerLight,
+            color: t.danger,
+            padding: "0.75rem 1rem",
+            borderRadius: 8,
+            marginBottom: "1rem",
+            fontSize: 14,
           }}
         >
-          <div>
+          Error: {error}
+        </div>
+      )}
+
+      {!loading && rounds.length === 0 && !error && (
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>🥏</div>
+          <div style={{ color: t.textSub, fontSize: 15 }}>
+            No rounds yet — start one!
+          </div>
+        </div>
+      )}
+
+      {/* In progress rounds */}
+      {inProgress.length > 0 && (
+        <>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: t.textSub,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              margin: "0 0 0.5rem",
+            }}
+          >
+            In progress
+          </div>
+          {inProgress.map((r) => (
+            <RoundCard
+              key={r.id}
+              r={r}
+              t={t}
+              userId={user.id}
+              onRemove={removeRound}
+              removing={removing}
+            />
+          ))}
+        </>
+      )}
+
+      {/* Completed rounds */}
+      {completed.length > 0 && (
+        <>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: t.textSub,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              margin: `${inProgress.length > 0 ? "1rem" : "0"} 0 0.5rem`,
+            }}
+          >
+            Completed
+          </div>
+          {completed.map((r) => (
+            <RoundCard
+              key={r.id}
+              r={r}
+              t={t}
+              userId={user.id}
+              onRemove={removeRound}
+              removing={removing}
+            />
+          ))}
+        </>
+      )}
+    </Layout>
+  );
+}
+
+function RoundCard({ r, t, userId, onRemove, removing }) {
+  const isOwner = r.created_by === userId;
+  const totalHoles = r.layouts
+    ? r.layouts.number_of_holes * r.layouts.loops
+    : "?";
+
+  return (
+    <div
+      style={{
+        background: t.card,
+        borderRadius: 10,
+        padding: "0.875rem 1rem",
+        marginBottom: 8,
+        boxShadow: t.shadow,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <Link to={`/round/${r.id}`} style={{ textDecoration: "none" }}>
             <div style={{ fontWeight: 600, fontSize: 15, color: t.text }}>
-              {r.courses?.name}
+              {r.courses?.name ?? "Unknown course"}
             </div>
             <div
               style={{
                 fontSize: 13,
                 color: t.textSub,
                 textTransform: "capitalize",
+                marginTop: 2,
               }}
             >
-              {r.layouts?.layout_name} · {r.format} · Start hole{" "}
-              {r.starting_hole}
+              {r.layouts?.layout_name} · {r.format} · {totalHoles} holes · Start
+              hole {r.starting_hole}
             </div>
+            {r.play_for_tags && (
+              <div style={{ fontSize: 11, color: t.accentText, marginTop: 2 }}>
+                🏷️ Tags played
+              </div>
+            )}
+          </Link>
+        </div>
+        <div style={{ textAlign: "right", marginLeft: 8, flexShrink: 0 }}>
+          <div style={{ fontSize: 13, color: t.textSub, marginBottom: 4 }}>
+            {new Date(r.played_at).toLocaleDateString("en-NZ", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
           </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 13, color: t.textSub, marginBottom: 4 }}>
-              {new Date(r.played_at).toLocaleDateString("en-NZ", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                padding: "2px 6px",
-                borderRadius: 4,
-                ...(r.status === "complete"
-                  ? { background: t.successLight, color: t.success }
-                  : { background: t.warnLight, color: t.warn }),
-              }}
-            >
-              {r.status === "complete" ? "Complete" : "In progress"}
-            </div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "2px 6px",
+              borderRadius: 4,
+              display: "inline-block",
+              ...(r.status === "complete"
+                ? { background: t.successLight, color: t.success }
+                : { background: t.warnLight, color: t.warn }),
+            }}
+          >
+            {r.status === "complete" ? "Complete" : "● In progress"}
           </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginTop: 10,
+          borderTop: `1px solid ${t.borderCard}`,
+          paddingTop: 8,
+        }}
+      >
+        <Link
+          to={`/round/${r.id}`}
+          style={{
+            flex: 1,
+            padding: "0.5rem",
+            background: t.accentLight,
+            color: t.accentText,
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: "none",
+            textAlign: "center",
+          }}
+        >
+          {r.status === "complete" ? "📊 View scorecard" : "▶️ Resume round"}
         </Link>
-      ))}
-    </Layout>
+        {isOwner && (
+          <button
+            style={{
+              padding: "0.5rem 0.875rem",
+              background: t.dangerLight,
+              color: t.danger,
+              border: `1px solid ${t.danger}`,
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              opacity: removing === r.id ? 0.5 : 1,
+            }}
+            disabled={removing === r.id}
+            onClick={() => onRemove(r)}
+          >
+            {removing === r.id ? "..." : "🗑 Remove"}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
