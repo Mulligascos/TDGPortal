@@ -13,19 +13,38 @@ export function HistoryPage() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
   const [rounds, setRounds] = useState([]);
-
-  useEffect(() => {
-    supabase
+  async function load() {
+    // Step 1: get all round IDs this player participated in
+    const { data: participated, error: e1 } = await supabase
       .from("round_players")
+      .select("round_id")
+      .eq("player_id", user.id);
+
+    if (e1) {
+      console.error("round_players error:", e1);
+      setLoading(false);
+      return;
+    }
+    if (!participated || participated.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const roundIds = participated.map((r) => r.round_id);
+
+    // Step 2: fetch round details ordered by played_at on the rounds table
+    const { data, error: e2 } = await supabase
+      .from("rounds")
       .select(
-        "rounds(id, played_at, status, format, starting_hole, courses(name), layouts(layout_name, number_of_holes, loops))",
+        "id, played_at, status, format, starting_hole, play_for_tags, courses(name), layouts(layout_name, number_of_holes, loops)",
       )
-      .eq("player_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) =>
-        setRounds(data?.map((r) => r.rounds).filter(Boolean) ?? []),
-      );
-  }, [user.id]);
+      .in("id", roundIds)
+      .order("played_at", { ascending: false });
+
+    if (e2) console.error("rounds error:", e2);
+    setRounds(data ?? []);
+    setLoading(false);
+  }
 
   return (
     <Layout title="My history">
