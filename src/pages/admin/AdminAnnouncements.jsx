@@ -96,7 +96,135 @@ export default function AdminAnnouncements() {
       .eq("id", a.id);
     loadAnnouncements();
   }
-
+  const addBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+    marginBottom: "0.75rem",
+  };
+  const formCard = {
+    background: t.card,
+    borderRadius: 12,
+    padding: "1.25rem",
+    marginBottom: "1rem",
+    boxShadow: t.shadow,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  };
+  const formTitle = {
+    margin: "0 0 0.25rem",
+    fontSize: 16,
+    fontWeight: 600,
+    color: t.text,
+  };
+  const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
+  const inp = {
+    padding: "0.625rem 0.75rem",
+    borderRadius: 8,
+    border: "1.5px solid t.border",
+    fontSize: 15,
+    width: "100%",
+    boxSizing: "border-box",
+    background: t.card,
+    fontFamily: "inherit",
+  };
+  const checkRow = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    cursor: "pointer",
+  };
+  const btnRow = { display: "flex", gap: 8, justifyContent: "flex-end" };
+  const submitBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const cancelBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#f3f4f6",
+    color: "#374151",
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const announcementCard = {
+    background: t.card,
+    borderRadius: 12,
+    padding: "1rem",
+    marginBottom: 10,
+    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+  };
+  const cardTop = {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  };
+  const pinBadge = {
+    fontSize: 11,
+    background: "#fef3c7",
+    color: "#92400e",
+    padding: "1px 6px",
+    borderRadius: 4,
+    marginBottom: 4,
+    display: "inline-block",
+  };
+  const cardTitle = { fontWeight: 700, fontSize: 16, color: "t.text" };
+  const cardMeta = { fontSize: 12, color: "#9ca3af", marginTop: 2 };
+  const cardBody = {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 1.6,
+    whiteSpace: "pre-wrap",
+    margin: "0.5rem 0",
+  };
+  const cardActions = {
+    display: "flex",
+    gap: 6,
+    borderTop: "1px solid #f3f4f6",
+    paddingTop: 8,
+    marginTop: 4,
+  };
+  const actionBtn = {
+    padding: "4px 10px",
+    background: "#f9fafb",
+    border: "1px solid t.border",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+    color: "#374151",
+  };
+  const successBox = {
+    background: t.succesLight,
+    color: t.success,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const errorBox = {
+    background: t.dangerLight,
+    color: t.danger,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
   return (
     <Layout title="Announcements">
       {success && (
@@ -213,133 +341,3 @@ export default function AdminAnnouncements() {
     </Layout>
   );
 }
-
-const addBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-  marginBottom: "0.75rem",
-};
-const formCard = {
-  background: t.card,
-  borderRadius: 12,
-  padding: "1.25rem",
-  marginBottom: "1rem",
-  boxShadow: t.shadow,
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-const formTitle = {
-  margin: "0 0 0.25rem",
-  fontSize: 16,
-  fontWeight: 600,
-  color: t.text,
-};
-const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
-const inp = {
-  padding: "0.625rem 0.75rem",
-  borderRadius: 8,
-  border: "1.5px solid t.border",
-  fontSize: 15,
-  width: "100%",
-  boxSizing: "border-box",
-  background: t.card,
-  fontFamily: "inherit",
-};
-const checkRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  cursor: "pointer",
-};
-const btnRow = { display: "flex", gap: 8, justifyContent: "flex-end" };
-const submitBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const cancelBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#f3f4f6",
-  color: "#374151",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const announcementCard = {
-  background: t.card,
-  borderRadius: 12,
-  padding: "1rem",
-  marginBottom: 10,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-};
-const cardTop = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: 6,
-};
-const pinBadge = {
-  fontSize: 11,
-  background: "#fef3c7",
-  color: "#92400e",
-  padding: "1px 6px",
-  borderRadius: 4,
-  marginBottom: 4,
-  display: "inline-block",
-};
-const cardTitle = { fontWeight: 700, fontSize: 16, color: "t.text" };
-const cardMeta = { fontSize: 12, color: "#9ca3af", marginTop: 2 };
-const cardBody = {
-  fontSize: 14,
-  color: "#374151",
-  lineHeight: 1.6,
-  whiteSpace: "pre-wrap",
-  margin: "0.5rem 0",
-};
-const cardActions = {
-  display: "flex",
-  gap: 6,
-  borderTop: "1px solid #f3f4f6",
-  paddingTop: 8,
-  marginTop: 4,
-};
-const actionBtn = {
-  padding: "4px 10px",
-  background: "#f9fafb",
-  border: "1px solid t.border",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-  color: "#374151",
-};
-const successBox = {
-  background: t.succesLight,
-  color: t.success,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};
-const errorBox = {
-  background: t.dangerLight,
-  color: t.danger,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};

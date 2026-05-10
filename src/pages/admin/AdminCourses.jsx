@@ -215,6 +215,174 @@ export default function AdminCourses() {
   const totalPar = (parArray, loops) =>
     parArray.reduce((a, b) => a + b, 0) * loops;
 
+  const addBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+    marginBottom: "0.75rem",
+  };
+  const formCard = {
+    background: t.card,
+    borderRadius: 12,
+    padding: "1.25rem",
+    marginBottom: "1rem",
+    boxShadow: t.shadow,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  };
+  const formTitle = {
+    margin: "0 0 0.5rem",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "t.text",
+  };
+  const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
+  const inp = {
+    padding: "0.625rem 0.75rem",
+    borderRadius: 8,
+    border: "1.5px solid t.border",
+    fontSize: 15,
+    width: "100%",
+    boxSizing: "border-box",
+    background: t.input,
+  };
+  const btnRow = {
+    display: "flex",
+    gap: 8,
+    justifyContent: "flex-end",
+    marginTop: 4,
+  };
+  const submitBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const cancelBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#f3f4f6",
+    color: "#374151",
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const courseCard = {
+    background: "#fff",
+    borderRadius: 12,
+    marginBottom: 10,
+    boxShadow: t.shadow,
+    overflow: "hidden",
+  };
+  const courseHeader = {
+    padding: "1rem",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    cursor: "pointer",
+  };
+  const courseName = { fontWeight: 700, fontSize: 16, color: "t.text" };
+  const courseLoc = { fontSize: 13, color: t.textSub, marginTop: 2 };
+  const chevron = { fontSize: 12, color: t.textSub };
+  const layoutsSection = {
+    borderTop: "1px solid #f3f4f6",
+    padding: "0.875rem 1rem",
+  };
+  const layoutsHeader = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "0.75rem",
+  };
+  const layoutsTitle = {
+    fontSize: 13,
+    fontWeight: 600,
+    color: t.textSub,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  };
+  const addLayoutBtn = {
+    padding: "4px 10px",
+    background: "#f0faf4",
+    color: "#1d6b3a",
+    border: "1.5px solid #1d6b3a",
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  };
+  const layoutFormStyle = {
+    background: "#f9fafb",
+    borderRadius: 8,
+    padding: "0.875rem",
+    marginBottom: "0.75rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  };
+  const layoutRow = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0.625rem 0",
+    borderBottom: "1px solid #f3f4f6",
+  };
+  const layoutName = { fontWeight: 600, fontSize: 14, color: "t.text" };
+  const layoutSub = { fontSize: 12, color: t.textSub, marginTop: 2 };
+  const parDisplay = {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 2,
+    fontFamily: "monospace",
+  };
+  const editBtn = {
+    padding: "3px 10px",
+    background: "#fff",
+    border: "1px solid t.border",
+    color: "#374151",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+  };
+  const deleteBtn = {
+    padding: "3px 10px",
+    background: "#fff",
+    border: "1px solid #fca5a5",
+    color: "t.danger",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+  };
+  const successBox = {
+    background: t.succesLight,
+    color: t.success,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const errorBox = {
+    background: t.dangerLight,
+    color: t.danger,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const parHint = { fontSize: 12, color: t.textSub, margin: 0 };
   return (
     <Layout title="Courses & layouts">
       {success && (
@@ -467,172 +635,3 @@ export default function AdminCourses() {
     </Layout>
   );
 }
-
-const addBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-  marginBottom: "0.75rem",
-};
-const formCard = {
-  background: t.card,
-  borderRadius: 12,
-  padding: "1.25rem",
-  marginBottom: "1rem",
-  boxShadow: t.shadow,
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-const formTitle = {
-  margin: "0 0 0.5rem",
-  fontSize: 16,
-  fontWeight: 600,
-  color: "t.text",
-};
-const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
-const inp = {
-  padding: "0.625rem 0.75rem",
-  borderRadius: 8,
-  border: "1.5px solid t.border",
-  fontSize: 15,
-  width: "100%",
-  boxSizing: "border-box",
-  background: t.input,
-};
-const btnRow = {
-  display: "flex",
-  gap: 8,
-  justifyContent: "flex-end",
-  marginTop: 4,
-};
-const submitBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const cancelBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#f3f4f6",
-  color: "#374151",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const courseCard = {
-  background: "#fff",
-  borderRadius: 12,
-  marginBottom: 10,
-  boxShadow: t.shadow,
-  overflow: "hidden",
-};
-const courseHeader = {
-  padding: "1rem",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  cursor: "pointer",
-};
-const courseName = { fontWeight: 700, fontSize: 16, color: "t.text" };
-const courseLoc = { fontSize: 13, color: t.textSub, marginTop: 2 };
-const chevron = { fontSize: 12, color: t.textSub };
-const layoutsSection = {
-  borderTop: "1px solid #f3f4f6",
-  padding: "0.875rem 1rem",
-};
-const layoutsHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "0.75rem",
-};
-const layoutsTitle = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: t.textSub,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-};
-const addLayoutBtn = {
-  padding: "4px 10px",
-  background: "#f0faf4",
-  color: "#1d6b3a",
-  border: "1.5px solid #1d6b3a",
-  borderRadius: 6,
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: "pointer",
-};
-const layoutFormStyle = {
-  background: "#f9fafb",
-  borderRadius: 8,
-  padding: "0.875rem",
-  marginBottom: "0.75rem",
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-const layoutRow = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "0.625rem 0",
-  borderBottom: "1px solid #f3f4f6",
-};
-const layoutName = { fontWeight: 600, fontSize: 14, color: "t.text" };
-const layoutSub = { fontSize: 12, color: t.textSub, marginTop: 2 };
-const parDisplay = {
-  fontSize: 11,
-  color: "#9ca3af",
-  marginTop: 2,
-  fontFamily: "monospace",
-};
-const editBtn = {
-  padding: "3px 10px",
-  background: "#fff",
-  border: "1px solid t.border",
-  color: "#374151",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-};
-const deleteBtn = {
-  padding: "3px 10px",
-  background: "#fff",
-  border: "1px solid #fca5a5",
-  color: "t.danger",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-};
-const successBox = {
-  background: t.succesLight,
-  color: t.success,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};
-const errorBox = {
-  background: t.dangerLight,
-  color: t.danger,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};
-const parHint = { fontSize: 12, color: t.textSub, margin: 0 };

@@ -67,6 +67,92 @@ export default function AdminReports() {
     if (counts[r.status] !== undefined) counts[r.status]++;
   });
 
+  const tabs = {
+    display: "flex",
+    gap: 6,
+    marginBottom: "1rem",
+    flexWrap: "wrap",
+  };
+  const tab = {
+    padding: "0.4rem 0.875rem",
+    borderRadius: 20,
+    border: "1.5px solid t.border",
+    background: "#fff",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    color: t.textSub,
+  };
+  const tabActive = {
+    borderColor: "#1d6b3a",
+    background: "#f0faf4",
+    color: "#1d6b3a",
+    fontWeight: 700,
+  };
+  const card = {
+    background: "#fff",
+    borderRadius: 12,
+    padding: "1rem",
+    marginBottom: 10,
+    boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+  };
+  const cardHeader = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  };
+  const cardLeft = {
+    display: "flex",
+    gap: 6,
+    alignItems: "center",
+    flexWrap: "wrap",
+  };
+  const typeBadge = {
+    fontSize: 12,
+    fontWeight: 600,
+    padding: "2px 8px",
+    borderRadius: 4,
+    background: "#f3f4f6",
+    color: "#374151",
+  };
+  const statusBadge = {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "2px 8px",
+    borderRadius: 4,
+  };
+  const cardDate = { fontSize: 12, color: "#9ca3af" };
+  const cardBody = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    marginBottom: 10,
+  };
+  const cardMeta = { fontSize: 13, color: t.textSub };
+  const cardDesc = {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 1.5,
+    marginTop: 4,
+  };
+  const cardActions = {
+    display: "flex",
+    gap: 6,
+    borderTop: "1px solid #f3f4f6",
+    paddingTop: 8,
+    flexWrap: "wrap",
+  };
+  const actionBtn = {
+    padding: "4px 10px",
+    background: "#f9fafb",
+    border: "1px solid t.border",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+    color: "#374151",
+  };
+
   return (
     <Layout title="Reports">
       {/* Filter tabs */}
@@ -163,89 +249,3 @@ export default function AdminReports() {
     </Layout>
   );
 }
-
-const tabs = {
-  display: "flex",
-  gap: 6,
-  marginBottom: "1rem",
-  flexWrap: "wrap",
-};
-const tab = {
-  padding: "0.4rem 0.875rem",
-  borderRadius: 20,
-  border: "1.5px solid t.border",
-  background: "#fff",
-  fontSize: 13,
-  fontWeight: 500,
-  cursor: "pointer",
-  color: t.textSub,
-};
-const tabActive = {
-  borderColor: "#1d6b3a",
-  background: "#f0faf4",
-  color: "#1d6b3a",
-  fontWeight: 700,
-};
-const card = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: "1rem",
-  marginBottom: 10,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
-};
-const cardHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 8,
-};
-const cardLeft = {
-  display: "flex",
-  gap: 6,
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-const typeBadge = {
-  fontSize: 12,
-  fontWeight: 600,
-  padding: "2px 8px",
-  borderRadius: 4,
-  background: "#f3f4f6",
-  color: "#374151",
-};
-const statusBadge = {
-  fontSize: 11,
-  fontWeight: 600,
-  padding: "2px 8px",
-  borderRadius: 4,
-};
-const cardDate = { fontSize: 12, color: "#9ca3af" };
-const cardBody = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 4,
-  marginBottom: 10,
-};
-const cardMeta = { fontSize: 13, color: t.textSub };
-const cardDesc = {
-  fontSize: 14,
-  color: "#374151",
-  lineHeight: 1.5,
-  marginTop: 4,
-};
-const cardActions = {
-  display: "flex",
-  gap: 6,
-  borderTop: "1px solid #f3f4f6",
-  paddingTop: 8,
-  flexWrap: "wrap",
-};
-const actionBtn = {
-  padding: "4px 10px",
-  background: "#f9fafb",
-  border: "1px solid t.border",
-  borderRadius: 6,
-  fontSize: 12,
-  cursor: "pointer",
-  color: "#374151",
-};

@@ -95,13 +95,13 @@ export default function AdminDashboard() {
       icon: "🚩",
       label: "Reports",
       sub: `${stats.openReports} open`,
-      color: t.bg,
+      color: t.b,
       border: t.border,
       darkColor: "#1a0000",
       darkBorder: "t.danger",
     },
   ];
-
+  const cardSub = { fontSize: 12, color: t.textSub, textAlign: "center" };
   return (
     <Layout title="Admin panel">
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -154,4 +154,3 @@ const card = {
 };
 const icon = { fontSize: 32 };
 const cardLabel = { fontWeight: 700, fontSize: 15, color: "t.text" };
-const cardSub = { fontSize: 12, color: t.textSub, textAlign: "center" };

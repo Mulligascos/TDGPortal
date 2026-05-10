@@ -159,6 +159,172 @@ export default function AdminMembers() {
     ).join("");
   }
 
+  const addBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+    marginBottom: "0.75rem",
+  };
+  const formCard = {
+    background: t.card,
+    borderRadius: 12,
+    padding: "1.25rem",
+    marginBottom: "1rem",
+    boxShadow: t.shadow,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  };
+  const formTitle = {
+    margin: "0 0 0.25rem",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "t.text",
+  };
+  const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
+  const editNote = { fontSize: 11, color: "#9ca3af", fontWeight: 400 };
+  const inp = {
+    padding: "0.625rem 0.75rem",
+    borderRadius: 8,
+    border: "1.5px solid t.border",
+    fontSize: 15,
+    width: "100%",
+    boxSizing: "border-box",
+    background: t.card,
+  };
+  const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
+  const genBtn = {
+    padding: "0.625rem 0.875rem",
+    background: "#f3f4f6",
+    border: "1.5px solid t.border",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontSize: 13,
+    whiteSpace: "nowrap",
+  };
+  const pwHint = {
+    fontSize: 13,
+    color: "#374151",
+    background: "#f0faf4",
+    padding: "0.5rem 0.75rem",
+    borderRadius: 6,
+    lineHeight: 1.5,
+  };
+  const btnRow = {
+    display: "flex",
+    gap: 8,
+    justifyContent: "flex-end",
+    marginTop: 4,
+  };
+  const submitBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#1d6b3a",
+    color: t.card,
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const cancelBtn = {
+    padding: "0.625rem 1.25rem",
+    background: "#f3f4f6",
+    color: "#374151",
+    border: "none",
+    borderRadius: 8,
+    fontWeight: 600,
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const memberCard = {
+    background: t.card,
+    borderRadius: 10,
+    padding: "0.75rem 1rem",
+    marginBottom: 8,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+    gap: 8,
+  };
+  const cardLeft = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    minWidth: 0,
+  };
+  const cardRight = {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  };
+  const avatar = {
+    width: 36,
+    height: 36,
+    borderRadius: "50%",
+    background: "#1d6b3a",
+    color: t.card,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    fontSize: 16,
+    flexShrink: 0,
+  };
+  const nameStyle = { fontWeight: 600, fontSize: 15, color: "t.text" };
+  const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
+  const emailStyle = { fontSize: 12, color: t.textSub };
+  const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
+  const roleBadge = {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: "2px 8px",
+    borderRadius: 4,
+  };
+  const adminBadge = { background: "#ede9fe", color: "#7c3aed" };
+  const memberBadge = { background: "#f3f4f6", color: t.textSub };
+  const editBtn = {
+    fontSize: 12,
+    padding: "2px 8px",
+    borderRadius: 4,
+    border: "1px solid t.border",
+    background: t.card,
+    cursor: "pointer",
+    color: "#374151",
+  };
+  const deleteBtn = {
+    padding: "2px 6px",
+    background: t.card,
+    border: "1px solid #fca5a5",
+    borderRadius: 6,
+    fontSize: 13,
+    cursor: "pointer",
+  };
+  const successBox = {
+    background: t.succesLight,
+    color: t.success,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const errorBox = {
+    background: t.dangerLight,
+    color: t.danger,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+
   return (
     <Layout title="Members">
       {success && (
@@ -321,169 +487,3 @@ export default function AdminMembers() {
     </Layout>
   );
 }
-
-const addBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-  marginBottom: "0.75rem",
-};
-const formCard = {
-  background: t.card,
-  borderRadius: 12,
-  padding: "1.25rem",
-  marginBottom: "1rem",
-  boxShadow: t.shadow,
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-const formTitle = {
-  margin: "0 0 0.25rem",
-  fontSize: 16,
-  fontWeight: 600,
-  color: "t.text",
-};
-const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
-const editNote = { fontSize: 11, color: "#9ca3af", fontWeight: 400 };
-const inp = {
-  padding: "0.625rem 0.75rem",
-  borderRadius: 8,
-  border: "1.5px solid t.border",
-  fontSize: 15,
-  width: "100%",
-  boxSizing: "border-box",
-  background: t.card,
-};
-const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
-const genBtn = {
-  padding: "0.625rem 0.875rem",
-  background: "#f3f4f6",
-  border: "1.5px solid t.border",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontSize: 13,
-  whiteSpace: "nowrap",
-};
-const pwHint = {
-  fontSize: 13,
-  color: "#374151",
-  background: "#f0faf4",
-  padding: "0.5rem 0.75rem",
-  borderRadius: 6,
-  lineHeight: 1.5,
-};
-const btnRow = {
-  display: "flex",
-  gap: 8,
-  justifyContent: "flex-end",
-  marginTop: 4,
-};
-const submitBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#1d6b3a",
-  color: t.card,
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const cancelBtn = {
-  padding: "0.625rem 1.25rem",
-  background: "#f3f4f6",
-  color: "#374151",
-  border: "none",
-  borderRadius: 8,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: "pointer",
-};
-const memberCard = {
-  background: t.card,
-  borderRadius: 10,
-  padding: "0.75rem 1rem",
-  marginBottom: 8,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-  gap: 8,
-};
-const cardLeft = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  minWidth: 0,
-};
-const cardRight = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  flexShrink: 0,
-};
-const avatar = {
-  width: 36,
-  height: 36,
-  borderRadius: "50%",
-  background: "#1d6b3a",
-  color: t.card,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontWeight: 700,
-  fontSize: 16,
-  flexShrink: 0,
-};
-const nameStyle = { fontWeight: 600, fontSize: 15, color: "t.text" };
-const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
-const emailStyle = { fontSize: 12, color: t.textSub };
-const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
-const roleBadge = {
-  fontSize: 11,
-  fontWeight: 600,
-  padding: "2px 8px",
-  borderRadius: 4,
-};
-const adminBadge = { background: "#ede9fe", color: "#7c3aed" };
-const memberBadge = { background: "#f3f4f6", color: t.textSub };
-const editBtn = {
-  fontSize: 12,
-  padding: "2px 8px",
-  borderRadius: 4,
-  border: "1px solid t.border",
-  background: t.card,
-  cursor: "pointer",
-  color: "#374151",
-};
-const deleteBtn = {
-  padding: "2px 6px",
-  background: t.card,
-  border: "1px solid #fca5a5",
-  borderRadius: 6,
-  fontSize: 13,
-  cursor: "pointer",
-};
-const successBox = {
-  background: t.succesLight,
-  color: t.success,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};
-const errorBox = {
-  background: t.dangerLight,
-  color: t.danger,
-  padding: "0.75rem 1rem",
-  borderRadius: 8,
-  marginBottom: "0.75rem",
-  fontSize: 14,
-  cursor: "pointer",
-};
