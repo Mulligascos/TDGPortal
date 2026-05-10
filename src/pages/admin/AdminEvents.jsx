@@ -1355,7 +1355,7 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
               year: "numeric",
             })}
             {" · "}
-            {tournament.format} · {(tournament.tournament_rounds ?? []).length}{" "}
+            {tournament.format}
             rounds · {(tournament.tournament_players ?? []).length} players
           </div>
         </div>
