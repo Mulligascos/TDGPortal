@@ -106,16 +106,15 @@ function EventsTab() {
     setForm({
       name: ev.name,
       description: ev.description ?? "",
-      course_id: ev.course_id ?? "",
-      layout_id: ev.layout_id ?? "",
+      start_date: ev.start_date ? ev.start_date.slice(0, 10) : "",
+      end_date: ev.end_date ? ev.end_date.slice(0, 10) : "",
       format: ev.format ?? "strokeplay",
-      event_date: ev.event_date ? ev.event_date.slice(0, 16) : "",
+      status: ev.status ?? "draft",
     });
     setShowForm(true);
     setError(null);
     window.scrollTo(0, 0);
   }
-
   async function save(e) {
     e.preventDefault();
     setError(null);
@@ -125,7 +124,8 @@ function EventsTab() {
       course_id: form.course_id || null,
       layout_id: form.layout_id || null,
       format: form.format,
-      event_date: form.event_date,
+      start_date: form.start_date,
+      end_date: form.end_date,
     };
     if (editing) {
       const { error } = await supabase
@@ -155,7 +155,8 @@ function EventsTab() {
       course_id: "",
       layout_id: "",
       format: "strokeplay",
-      event_date: "",
+      start_date: "",
+      end_date: "",
     });
     loadEvents();
   }
@@ -166,8 +167,8 @@ function EventsTab() {
     loadEvents();
   }
 
-  const upcoming = events.filter((e) => new Date(e.event_date) >= new Date());
-  const past = events.filter((e) => new Date(e.event_date) < new Date());
+  const upcoming = events.filter((e) => new Date(e.start_date) >= new Date());
+  const past = events.filter((e) => new Date(e.start_date) < new Date());
   const inp = {
     padding: "0.625rem 0.75rem",
     borderRadius: 8,
@@ -267,15 +268,27 @@ function EventsTab() {
             placeholder="e.g. Club Championship Round 1"
           />
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
-            Date & time
+            Start date
           </label>
           <input
             style={inp}
-            type="datetime-local"
+            type="date"
             required
-            value={form.event_date}
+            value={form.start_date}
             onChange={(e) =>
-              setForm((f) => ({ ...f, event_date: e.target.value }))
+              setForm((f) => ({ ...f, start_date: e.target.value }))
+            }
+          />
+          <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
+            End date
+          </label>
+          <input
+            style={inp}
+            type="date"
+            required
+            value={form.end_date}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, end_date: e.target.value }))
             }
           />
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
