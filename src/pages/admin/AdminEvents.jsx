@@ -553,15 +553,15 @@ function TournamentsTab() {
   useEffect(() => {
     loadTournaments();
   }, []);
-
   async function loadTournaments() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("tournaments")
-      .select("*, tournament_rounds(id), tournament_players(id)")
+      .select("*")
       .order("start_date", { ascending: false });
+
+    if (error) console.error("tournaments error:", error);
     setTournaments(data ?? []);
   }
-
   function startNew() {
     setEditing(null);
     setShowForm(true);
@@ -720,15 +720,13 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
       .delete()
       .eq("tournament_id", tid);
     if (divisions.length > 0) {
-      await supabase
-        .from("tournament_divisions")
-        .insert(
-          divisions.map((d, i) => ({
-            tournament_id: tid,
-            name: d.name,
-            display_order: i,
-          })),
-        );
+      await supabase.from("tournament_divisions").insert(
+        divisions.map((d, i) => ({
+          tournament_id: tid,
+          name: d.name,
+          display_order: i,
+        })),
+      );
     }
 
     // Save rounds
@@ -1264,13 +1262,11 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
       alert("Add at least one division first");
       return;
     }
-    await supabase
-      .from("tournament_players")
-      .upsert({
-        tournament_id: tournament.id,
-        player_id: newPlayer.player_id,
-        division_id: divisionId,
-      });
+    await supabase.from("tournament_players").upsert({
+      tournament_id: tournament.id,
+      player_id: newPlayer.player_id,
+      division_id: divisionId,
+    });
     setNewPlayer({ player_id: "", division_id: "" });
     setAddingPlayer(false);
     await load();
