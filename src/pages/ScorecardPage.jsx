@@ -17,7 +17,8 @@ export default function ScorecardPage() {
   const [round, setRound] = useState(null);
   const [layout, setLayout] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [scores, setScores] = useState({});
+  const [scores, setScores] = useState({}); // live editing state
+  const [savedScores, setSavedScores] = useState({}); // confirmed saved to DB
   const [playOrder, setPlayOrder] = useState([]);
   const [currentHoleIndex, setCurrentHoleIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,7 @@ export default function ScorecardPage() {
       scoreMap[scoreKey(s.player_id, s.hole_number, s.loop)] = s.strokes;
     }
     setScores(scoreMap);
+    setSavedScores(scoreMap); // both start from DB
 
     // Detect stored playoff holes
     const maxPlayOrder = Math.max(
@@ -153,7 +155,14 @@ export default function ScorecardPage() {
     await supabase.from("scores").upsert(upserts, {
       onConflict: "round_id,player_id,hole_number,loop",
     });
-
+    // Mark these scores as saved
+    setSavedScores((prev) => {
+      const next = { ...prev };
+      for (const u of upserts) {
+        next[scoreKey(u.player_id, u.hole_number, u.loop)] = u.strokes;
+      }
+      return next;
+    });
     setSaving(false);
     if (nextIndex !== undefined) goToHole(nextIndex);
   }
@@ -316,8 +325,8 @@ export default function ScorecardPage() {
 
     for (let i = 0; i <= currentHoleIndex; i++) {
       const h = fullOrder[i];
-      const s1 = getScore(p1.id, h.holeNumber, h.loop);
-      const s2 = getScore(p2.id, h.holeNumber, h.loop);
+      const s1 = savedScores[scoreKey(p1.id, h.holeNumber, h.loop)] ?? null;
+      const s2 = savedScores[scoreKey(p2.id, h.holeNumber, h.loop)] ?? null;
       if (s1 != null && s2 != null) {
         if (s1 < s2) score++;
         else if (s2 < s1) score--;
@@ -341,7 +350,7 @@ export default function ScorecardPage() {
         .map((h) => ({
           hole_number: h.holeNumber,
           loop: h.loop,
-          strokes: getScore(p.id, h.holeNumber, h.loop),
+          strokes: savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null,
         }))
         .filter((s) => s.strokes != null);
       const { total, relativeToPar, holesPlayed } = calcPlayerScore(
@@ -809,38 +818,50 @@ export default function ScorecardPage() {
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: 6,
+            gap: 8,
             justifyContent: "center",
             marginBottom: "0.75rem",
+            padding: "0.5rem",
           }}
         >
           {fullOrder.map((h, i) => {
-            const allScored = players.every(
-              (p) => getScore(p.id, h.holeNumber, h.loop) != null,
-            );
+            const allScored = players.every((p) => {
+              const k = scoreKey(p.id, h.holeNumber, h.loop);
+              return savedScores[k] != null;
+            });
+            const isCurrent = i === currentHoleIndex;
             return (
               <button
                 key={i}
                 style={{
-                  width: 10,
-                  height: 10,
+                  width: isCurrent ? 36 : 14,
+                  height: isCurrent ? 36 : 14,
                   borderRadius: "50%",
-                  border: "none",
+                  border: isCurrent ? "3px solid #fff" : "none",
                   cursor: "pointer",
                   padding: 0,
-                  background:
-                    i === currentHoleIndex
-                      ? "#1d6b3a"
-                      : h.isPlayoff
-                        ? dm.dotPlayoff
-                        : allScored
-                          ? dm.dotDone
-                          : dm.dot,
-                  transform: i === currentHoleIndex ? "scale(1.4)" : "none",
-                  transition: "transform 0.1s",
+                  background: isCurrent
+                    ? "#1d6b3a"
+                    : h.isPlayoff
+                      ? dm.dotPlayoff
+                      : allScored
+                        ? dm.dotDone
+                        : dm.dot,
+                  boxShadow: isCurrent
+                    ? "0 0 0 3px #1d6b3a, 0 2px 8px rgba(0,0,0,0.4)"
+                    : "none",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
                 }}
                 onClick={() => saveHole(i)}
-              />
+              >
+                {isCurrent ? (h.isPlayoff ? "P" : h.holeNumber) : ""}
+              </button>
             );
           })}
           {playoffHoles.length > 0 && (
@@ -948,9 +969,14 @@ export default function ScorecardPage() {
                       {player.nickname || player.full_name}
                     </div>
                     {fullOrder.map((h, i) => {
-                      const s = getScore(player.id, h.holeNumber, h.loop);
+                      const s =
+                        savedScores[
+                          scoreKey(player.id, h.holeNumber, h.loop)
+                        ] ?? null;
                       const opp = players[1 - playerIdx];
-                      const oppS = getScore(opp.id, h.holeNumber, h.loop);
+                      const oppS =
+                        savedScores[scoreKey(opp.id, h.holeNumber, h.loop)] ??
+                        null;
                       let label = s ?? "·";
                       let style = { color: dm.sub, fontSize: 11 };
                       if (s != null && oppS != null) {
@@ -1093,7 +1119,10 @@ export default function ScorecardPage() {
                         {player.nickname || player.full_name}
                       </div>
                       {fullOrder.map((h, i) => {
-                        const s = getScore(player.id, h.holeNumber, h.loop);
+                        const s =
+                          savedScores[
+                            scoreKey(player.id, h.holeNumber, h.loop)
+                          ] ?? null;
                         const rel = s != null ? s - h.par : null;
                         return (
                           <div
@@ -1404,11 +1433,24 @@ export default function ScorecardPage() {
 }
 
 function getRelStyle(rel, dark) {
-  if (rel < 0)
-    return { background: dark ? "#3d1a1a" : "#fee2e2", color: "#dc2626" };
+  if (rel === undefined || rel === null)
+    return { background: "transparent", color: dark ? "#4a5080" : "#9ca3af" };
+  if (rel <= -3)
+    return { background: dark ? "#0a1a3d" : "#dbeafe", color: "#1d4ed8" }; // -3 or better = light blue
+  if (rel === -2)
+    return { background: dark ? "#0a2a1a" : "#bbf7d0", color: "#15803d" }; // -2 = light green
+  if (rel === -1)
+    return { background: dark ? "#0d3d1a" : "#dcfce7", color: "#16a34a" }; // -1 = green
   if (rel === 0)
-    return { background: dark ? "#1a3d2a" : "#f0fdf4", color: "#16a34a" };
+    return {
+      background: dark ? "#1a1a2e" : "#f3f4f6",
+      color: dark ? "#7b86c2" : "#6b7280",
+    }; // par = gray
   if (rel === 1)
-    return { background: dark ? "#3d3310" : "#fef9c3", color: "#ca8a04" };
-  return { background: dark ? "#1a2a3d" : "#eff6ff", color: "#2563eb" };
+    return { background: dark ? "#3d0a0a" : "#fee2e2", color: "#dc2626" }; // +1 = red
+  if (rel === 2)
+    return { background: dark ? "#3d1f0a" : "#ffedd5", color: "#ea580c" }; // +2 = orange
+  if (rel === 3)
+    return { background: dark ? "#2a0a3d" : "#f3e8ff", color: "#9333ea" }; // +3 = purple
+  return { background: dark ? "#2a1505" : "#f5f0eb", color: "#92400e" }; // +4+ = brown
 }
