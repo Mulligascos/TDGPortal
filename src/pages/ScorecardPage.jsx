@@ -24,6 +24,7 @@ export default function ScorecardPage() {
   const [saving, setSaving] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("darkMode") === "true",
   );
@@ -48,6 +49,8 @@ export default function ScorecardPage() {
     setRound(roundData);
     setLayout(roundData.layouts);
     setIsOwner(roundData.created_by === user.id);
+    setIsComplete(roundData.status === "complete");
+    if (roundData.status === "complete") setShowSummary(true);
 
     const parJson = roundData.layouts.par_json;
     const order = getPlayOrder(
@@ -495,31 +498,43 @@ export default function ScorecardPage() {
             </span>
           </div>
         )}
-
-        {/* Cancel button */}
-        {isOwner && (
-          <div
+      </div>
+      {/* Back / Cancel button */}
+      <div
+        style={{
+          maxWidth: 680,
+          margin: "0.375rem auto 0",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        {isComplete ? (
+          <button
+            onClick={() => navigate(-1)}
             style={{
-              maxWidth: 680,
-              margin: "0.375rem auto 0",
-              display: "flex",
-              justifyContent: "flex-end",
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 12,
+              cursor: "pointer",
             }}
           >
-            <button
-              onClick={cancelRound}
-              style={{
-                background: "none",
-                border: "none",
-                color: "rgba(255,255,255,0.5)",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              ✕ Cancel round
-            </button>
-          </div>
-        )}
+            ← Back
+          </button>
+        ) : isOwner ? (
+          <button
+            onClick={cancelRound}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            ✕ Cancel round
+          </button>
+        ) : null}
       </div>
 
       <div style={{ padding: "0.75rem 1rem", maxWidth: 680, margin: "0 auto" }}>
@@ -622,107 +637,170 @@ export default function ScorecardPage() {
                     >
                       {player.nickname || player.full_name}
                     </span>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <button
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          border: `1.5px solid ${dm.border}`,
-                          background: dm.input,
-                          fontSize: 20,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 700,
-                          color: dm.text,
-                        }}
-                        disabled={!isOwner || strokes <= 1}
-                        onClick={() =>
-                          updateScore(
-                            player.id,
-                            hole.holeNumber,
-                            hole.loop,
-                            Math.max(1, strokes - 1),
-                          )
-                        }
-                      >
-                        −
-                      </button>
+                    {isComplete ? (
+                      // View only — no controls
                       <div
                         style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 8,
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 20,
-                          fontWeight: 700,
-                          ...getRelStyle(parRel, d),
+                          gap: 8,
                         }}
                       >
-                        {strokes}
+                        <div
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 8,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 20,
+                            fontWeight: 700,
+                            ...getRelStyle(parRel, d),
+                          }}
+                        >
+                          {strokes}
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            minWidth: 28,
+                            textAlign: "center",
+                            ...getRelStyle(parRel, d),
+                          }}
+                        >
+                          {formatRelativeToPar(parRel)}
+                        </span>
+                        {isMatchplay && matchHoleResult && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: matchHoleResult.bg,
+                              color: matchHoleResult.color,
+                              minWidth: 36,
+                              textAlign: "center",
+                            }}
+                          >
+                            {matchHoleResult.label}
+                          </span>
+                        )}
                       </div>
-                      <button
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          border: `1.5px solid ${dm.border}`,
-                          background: dm.input,
-                          fontSize: 20,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 700,
-                          color: dm.text,
-                        }}
-                        disabled={!isOwner}
-                        onClick={() =>
-                          updateScore(
-                            player.id,
-                            hole.holeNumber,
-                            hole.loop,
-                            strokes + 1,
-                          )
-                        }
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        minWidth: 28,
-                        textAlign: "center",
-                        ...getRelStyle(parRel, d),
-                      }}
-                    >
-                      {formatRelativeToPar(parRel)}
-                    </span>
-                    {isMatchplay && matchHoleResult && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          background: matchHoleResult.bg,
-                          color: matchHoleResult.color,
-                          minWidth: 36,
-                          textAlign: "center",
-                        }}
-                      >
-                        {matchHoleResult.label}
-                      </span>
+                    ) : (
+                      // Editable controls
+                      <>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <button
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              border: `1.5px solid ${dm.border}`,
+                              background: dm.input,
+                              fontSize: 20,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              color: dm.text,
+                            }}
+                            disabled={!isOwner || strokes <= 1}
+                            onClick={() =>
+                              updateScore(
+                                player.id,
+                                hole.holeNumber,
+                                hole.loop,
+                                Math.max(1, strokes - 1),
+                              )
+                            }
+                          >
+                            −
+                          </button>
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 8,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 20,
+                              fontWeight: 700,
+                              ...getRelStyle(parRel, d),
+                            }}
+                          >
+                            {strokes}
+                          </div>
+                          <button
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              border: `1.5px solid ${dm.border}`,
+                              background: dm.input,
+                              fontSize: 20,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 700,
+                              color: dm.text,
+                            }}
+                            disabled={!isOwner}
+                            onClick={() =>
+                              updateScore(
+                                player.id,
+                                hole.holeNumber,
+                                hole.loop,
+                                strokes + 1,
+                              )
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            minWidth: 28,
+                            textAlign: "center",
+                            ...getRelStyle(parRel, d),
+                          }}
+                        >
+                          {formatRelativeToPar(parRel)}
+                        </span>
+                        {isMatchplay && matchHoleResult && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              background: matchHoleResult.bg,
+                              color: matchHoleResult.color,
+                              minWidth: 36,
+                              textAlign: "center",
+                            }}
+                          >
+                            {matchHoleResult.label}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -730,7 +808,7 @@ export default function ScorecardPage() {
             </div>
 
             {/* Navigation buttons */}
-            {isOwner && (
+            {isOwner && !isComplete && (
               <div
                 style={{
                   marginTop: "1.25rem",
