@@ -6,28 +6,30 @@ import { getTheme } from "../../lib/theme";
 import Layout from "../../components/shared/Layout";
 
 export default function AdminEvents() {
+  const { darkMode } = useDarkMode();
+  const t = getTheme(darkMode);
   const [tab, setTab] = useState("events");
 
   return (
     <Layout title="Events & tournaments">
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
-        {["events", "tournaments"].map((t) => (
+        {["events", "tournaments"].map((tabName) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={tabName}
+            onClick={() => setTab(tabName)}
             style={{
               padding: "0.5rem 1.25rem",
               borderRadius: 20,
               border: "1.5px solid",
-              borderColor: tab === t ? "#1d6b3a" : "#e5e7eb",
-              background: tab === t ? "#f0faf4" : "#fff",
-              color: tab === t ? "#1d6b3a" : "#6b7280",
-              fontWeight: tab === t ? 700 : 500,
+              borderColor: tab === tabName ? t.accent : t.border,
+              background: tab === tabName ? t.accentLight : t.card,
+              color: tab === tabName ? t.accentText : t.textSub,
+              fontWeight: tab === tabName ? 700 : 500,
               fontSize: 14,
               cursor: "pointer",
             }}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {tabName.charAt(0).toUpperCase() + tabName.slice(1)}
           </button>
         ))}
       </div>
@@ -36,7 +38,7 @@ export default function AdminEvents() {
   );
 }
 
-// ── Events Tab (existing functionality) ──────────────────
+// ── Events Tab ────────────────────────────────────────────
 function EventsTab() {
   const { user } = useAuth();
   const { darkMode } = useDarkMode();
@@ -106,15 +108,16 @@ function EventsTab() {
     setForm({
       name: ev.name,
       description: ev.description ?? "",
-      start_date: ev.start_date ? ev.start_date.slice(0, 10) : "",
-      end_date: ev.end_date ? ev.end_date.slice(0, 10) : "",
+      course_id: ev.course_id ?? "",
+      layout_id: ev.layout_id ?? "",
       format: ev.format ?? "strokeplay",
-      status: ev.status ?? "draft",
+      event_date: ev.event_date ? ev.event_date.slice(0, 16) : "",
     });
     setShowForm(true);
     setError(null);
     window.scrollTo(0, 0);
   }
+
   async function save(e) {
     e.preventDefault();
     setError(null);
@@ -124,8 +127,7 @@ function EventsTab() {
       course_id: form.course_id || null,
       layout_id: form.layout_id || null,
       format: form.format,
-      start_date: form.start_date,
-      end_date: form.end_date,
+      event_date: form.event_date,
     };
     if (editing) {
       const { error } = await supabase
@@ -155,8 +157,7 @@ function EventsTab() {
       course_id: "",
       layout_id: "",
       format: "strokeplay",
-      start_date: "",
-      end_date: "",
+      event_date: "",
     });
     loadEvents();
   }
@@ -167,8 +168,9 @@ function EventsTab() {
     loadEvents();
   }
 
-  const upcoming = events.filter((e) => new Date(e.start_date) >= new Date());
-  const past = events.filter((e) => new Date(e.start_date) < new Date());
+  const upcoming = events.filter((e) => new Date(e.event_date) >= new Date());
+  const past = events.filter((e) => new Date(e.event_date) < new Date());
+
   const inp = {
     padding: "0.625rem 0.75rem",
     borderRadius: 8,
@@ -257,6 +259,7 @@ function EventsTab() {
           >
             {editing ? "Edit event" : "New event"}
           </h3>
+
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
             Event name
           </label>
@@ -267,30 +270,20 @@ function EventsTab() {
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="e.g. Club Championship Round 1"
           />
+
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
-            Start date
+            Date & time
           </label>
           <input
             style={inp}
-            type="date"
+            type="datetime-local"
             required
-            value={form.start_date}
+            value={form.event_date}
             onChange={(e) =>
-              setForm((f) => ({ ...f, start_date: e.target.value }))
+              setForm((f) => ({ ...f, event_date: e.target.value }))
             }
           />
-          <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
-            End date
-          </label>
-          <input
-            style={inp}
-            type="date"
-            required
-            value={form.end_date}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, end_date: e.target.value }))
-            }
-          />
+
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
             Course
           </label>
@@ -312,6 +305,7 @@ function EventsTab() {
               </option>
             ))}
           </select>
+
           {form.course_id && (
             <>
               <label
@@ -335,6 +329,7 @@ function EventsTab() {
               </select>
             </>
           )}
+
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
             Format
           </label>
@@ -360,6 +355,7 @@ function EventsTab() {
               </button>
             ))}
           </div>
+
           <label style={{ fontSize: 13, fontWeight: 500, color: t.textSub }}>
             Description
           </label>
@@ -371,6 +367,7 @@ function EventsTab() {
             }
             placeholder="Any extra details..."
           />
+
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button
               type="button"
@@ -413,6 +410,7 @@ function EventsTab() {
       {upcoming.length === 0 && past.length === 0 && !showForm && (
         <p style={{ color: t.textSub }}>No events yet.</p>
       )}
+
       {upcoming.length > 0 && (
         <>
           <div
@@ -490,8 +488,8 @@ function EventCard({ ev, onEdit, onDelete, t, past }) {
           day: "numeric",
           month: "short",
           year: "numeric",
-        })}{" "}
-        ·{" "}
+        })}
+        {" · "}
         {d.toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit" })}
       </div>
       {ev.courses && (
@@ -566,15 +564,16 @@ function TournamentsTab() {
   useEffect(() => {
     loadTournaments();
   }, []);
+
   async function loadTournaments() {
     const { data, error } = await supabase
       .from("tournaments")
       .select("*")
       .order("start_date", { ascending: false });
-
     if (error) console.error("tournaments error:", error);
     setTournaments(data ?? []);
   }
+
   function startNew() {
     setEditing(null);
     setShowForm(true);
@@ -643,8 +642,8 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
   const [form, setForm] = useState({
     name: editing?.name ?? "",
     description: editing?.description ?? "",
-    start_date: editing?.start_date ?? "",
-    end_date: editing?.end_date ?? "",
+    start_date: editing?.start_date ? editing.start_date.slice(0, 10) : "",
+    end_date: editing?.end_date ? editing.end_date.slice(0, 10) : "",
     format: editing?.format ?? "strokeplay",
     status: editing?.status ?? "draft",
   });
@@ -674,11 +673,20 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
         .select("*, courses(name), layouts(layout_name)")
         .eq("tournament_id", tournamentId)
         .order("round_number")
-        .then(({ data }) => setRounds(data ?? []));
+        .then(({ data }) =>
+          setRounds(
+            (data ?? []).map((r) => ({
+              ...r,
+              scheduled_date: r.scheduled_date
+                ? r.scheduled_date.slice(0, 16)
+                : "",
+            })),
+          ),
+        );
     }
   }, [tournamentId]);
 
-  async function loadLayouts(courseId, roundIdx) {
+  async function loadLayouts(courseId) {
     if (layoutMap[courseId]) return;
     const { data } = await supabase
       .from("layouts")
@@ -733,13 +741,15 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
       .delete()
       .eq("tournament_id", tid);
     if (divisions.length > 0) {
-      await supabase.from("tournament_divisions").insert(
-        divisions.map((d, i) => ({
-          tournament_id: tid,
-          name: d.name,
-          display_order: i,
-        })),
-      );
+      await supabase
+        .from("tournament_divisions")
+        .insert(
+          divisions.map((d, i) => ({
+            tournament_id: tid,
+            name: d.name,
+            display_order: i,
+          })),
+        );
     }
 
     // Save rounds
@@ -751,7 +761,7 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
           round_number: i + 1,
           course_id: r.course_id || null,
           layout_id: r.layout_id || null,
-          scheduled_date: r.scheduled_date,
+          scheduled_date: r.scheduled_date || null,
           round_id: r.round_id || null,
         })),
       );
@@ -794,7 +804,7 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
         const updated = { ...r, [field]: value };
         if (field === "course_id") {
           updated.layout_id = "";
-          loadLayouts(value, idx);
+          loadLayouts(value);
         }
         return updated;
       }),
@@ -878,7 +888,6 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
         </div>
       )}
 
-      {/* Basic info */}
       <label style={lbl}>Tournament name</label>
       <input
         style={inp}
@@ -992,7 +1001,7 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
       </div>
       {divisions.length === 0 && (
         <p style={{ fontSize: 13, color: t.textMuted, margin: 0 }}>
-          No divisions — all players will be in one group.
+          No divisions — all players in one group.
         </p>
       )}
       {divisions.map((d, i) => (
@@ -1221,7 +1230,6 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
       .select("player_id, strokes, round_id")
       .in("round_id", linkedRoundIds);
 
-    // Sum strokes per player across all tournament rounds
     const totals = {};
     for (const s of scores ?? []) {
       if (!totals[s.player_id]) totals[s.player_id] = 0;
@@ -1264,7 +1272,7 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
       .from("tournaments")
       .update({ status: newStatus })
       .eq("id", tournament.id);
-    onDeleted(); // refresh list
+    onDeleted();
   }
 
   async function addPlayer(e) {
@@ -1335,7 +1343,14 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
         }}
       >
         <div style={{ flex: 1, cursor: "pointer" }} onClick={toggle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ fontWeight: 700, fontSize: 16, color: t.text }}>
               {tournament.name}
             </div>
@@ -1369,7 +1384,6 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
             })}
             {" · "}
             {tournament.format}
-            rounds · {(tournament.tournament_players ?? []).length} players
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 }}>
@@ -1455,8 +1469,8 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
                   Round {r.round_number}
                 </div>
                 <div style={{ fontSize: 12, color: t.textSub }}>
-                  {r.courses?.name ?? "No course"}{" "}
-                  {r.layouts ? `· ${r.layouts.layout_name}` : ""}
+                  {r.courses?.name ?? "No course"}
+                  {r.layouts ? ` · ${r.layouts.layout_name}` : ""}
                   {r.scheduled_date
                     ? ` · ${new Date(r.scheduled_date).toLocaleDateString("en-NZ", { day: "numeric", month: "short" })}`
                     : ""}
@@ -1624,12 +1638,10 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
           {loadingScores && (
             <p style={{ color: t.textSub, fontSize: 13 }}>Loading scores...</p>
           )}
-
           {!loadingScores && scoreboard.length === 0 && (
             <p style={{ color: t.textSub, fontSize: 13 }}>No scores yet.</p>
           )}
 
-          {/* Grouped by division */}
           {!loadingScores &&
             divisionGroups.map(({ division, players: divPlayers }) => (
               <div
@@ -1666,49 +1678,7 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
                 </button>
                 {expandedDivisions[division.id] && (
                   <div style={{ padding: "0.5rem 0" }}>
-                    {divPlayers.map((p, i) => (
-                      <div
-                        key={p.player_id}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "24px 1fr 60px",
-                          gap: 8,
-                          padding: "6px 0.875rem",
-                          borderBottom: `1px solid ${t.borderCard}`,
-                          alignItems: "center",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: i === 0 ? t.accentText : t.textSub,
-                          }}
-                        >
-                          {i + 1}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: t.text,
-                          }}
-                        >
-                          {p.name}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: t.text,
-                            textAlign: "right",
-                          }}
-                        >
-                          {p.total ?? "—"}
-                        </span>
-                      </div>
-                    ))}
-                    {divPlayers.length === 0 && (
+                    {divPlayers.length === 0 ? (
                       <p
                         style={{
                           padding: "0.5rem 0.875rem",
@@ -1719,13 +1689,55 @@ function TournamentCard({ tournament, t, onEdit, onDeleted }) {
                       >
                         No players in this division.
                       </p>
+                    ) : (
+                      divPlayers.map((p, i) => (
+                        <div
+                          key={p.player_id}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "24px 1fr 60px",
+                            gap: 8,
+                            padding: "6px 0.875rem",
+                            borderBottom: `1px solid ${t.borderCard}`,
+                            alignItems: "center",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 800,
+                              color: i === 0 ? t.accentText : t.textSub,
+                            }}
+                          >
+                            {i + 1}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: t.text,
+                            }}
+                          >
+                            {p.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: t.text,
+                              textAlign: "right",
+                            }}
+                          >
+                            {p.total ?? "—"}
+                          </span>
+                        </div>
+                      ))
                     )}
                   </div>
                 )}
               </div>
             ))}
 
-          {/* Ungrouped players (no division) */}
           {!loadingScores && ungrouped.length > 0 && (
             <div
               style={{
