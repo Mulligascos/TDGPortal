@@ -31,6 +31,7 @@ export default function ScorecardPage() {
   const [playoffHoles, setPlayoffHoles] = useState([]);
   const [tagResolution, setTagResolution] = useState(null);
   const [confirmingTags, setConfirmingTags] = useState(false);
+  const [tagTieInfo, setTagTieInfo] = useState(null);
 
   useEffect(() => {
     loadRound();
@@ -239,12 +240,67 @@ export default function ScorecardPage() {
     setFinishing(true);
     await saveHole();
 
-    const fullOrder = [...playOrder, ...playoffHoles];
-    const parJson = layout.par_json;
+    const currentFullOrder = [...playOrder, ...playoffHoles];
+    const currentParJson = layout.par_json;
 
     if (round.play_for_tags) {
-      const resolution = await resolveTagsAfterRound(fullOrder, parJson);
-      if (resolution) {
+      // Get tagged players and their scores
+      const playerIds = players.map((p) => p.id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, nickname, bag_tag_number")
+        .in("id", playerIds);
+
+      const taggedPlayers = profiles.filter((p) => p.bag_tag_number != null);
+
+      if (taggedPlayers.length >= 2) {
+        // Calculate totals for tagged players using savedScores
+        const taggedTotals = taggedPlayers.map((p) => {
+          const rows = currentFullOrder
+            .map((h) => ({
+              hole_number: h.holeNumber,
+              loop: h.loop,
+              strokes:
+                savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null,
+            }))
+            .filter((s) => s.strokes != null);
+          const { total } = calcPlayerScore(rows, currentParJson);
+          return { ...p, total };
+        });
+
+        // Check for ties between tagged players
+        const scores = taggedTotals.map((p) => p.total);
+        const uniqueScores = new Set(scores);
+        const hasTie = uniqueScores.size < scores.length;
+
+        if (hasTie) {
+          // Find who is tied
+          const scoreCounts = {};
+          scores.forEach((s) => {
+            scoreCounts[s] = (scoreCounts[s] || 0) + 1;
+          });
+          const tiedScores = Object.entries(scoreCounts)
+            .filter(([, count]) => count > 1)
+            .map(([score]) => parseInt(score));
+          const tiedPlayers = taggedTotals.filter((p) =>
+            tiedScores.includes(p.total),
+          );
+          const tiedNames = tiedPlayers
+            .map((p) => p.nickname || p.full_name)
+            .join(" & ");
+
+          setFinishing(false);
+          setTagTieInfo({ tiedNames, tiedPlayers });
+          return;
+        }
+      }
+
+      // No ties — resolve normally
+      const resolution = await resolveTagsAfterRound(
+        currentFullOrder,
+        currentParJson,
+      );
+      if (resolution && resolution.changes.length > 0) {
         setTagResolution(resolution);
         setFinishing(false);
         return;
@@ -255,28 +311,6 @@ export default function ScorecardPage() {
       .from("rounds")
       .update({ status: "complete" })
       .eq("id", roundId);
-    navigate("/history");
-  }
-
-  async function confirmTagChanges() {
-    setConfirmingTags(true);
-    for (const change of tagResolution.changes) {
-      await supabase
-        .from("profiles")
-        .update({ bag_tag_number: change.newTag })
-        .eq("id", change.playerId);
-      await supabase.from("bag_tag_history").insert({
-        tag_number: change.newTag,
-        holder_id: change.playerId,
-        round_id: roundId,
-        notes: `Tag won in round. Score: ${change.score}`,
-      });
-    }
-    await supabase
-      .from("rounds")
-      .update({ status: "complete" })
-      .eq("id", roundId);
-    setConfirmingTags(false);
     navigate("/history");
   }
 
@@ -788,7 +822,29 @@ export default function ScorecardPage() {
                     </button>
                   )}
                 </div>
-
+                {/* On playoff holes for tag resolution — always show finish (will re-check for ties) */}
+                {!isMatchplay &&
+                  round.play_for_tags &&
+                  hole?.isPlayoff &&
+                  isLastHole && (
+                    <button
+                      style={{
+                        padding: "0.875rem",
+                        background: "#1d6b3a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        fontWeight: 700,
+                        fontSize: 16,
+                        cursor: "pointer",
+                        marginTop: 4,
+                      }}
+                      onClick={handleFinishWithTags}
+                      disabled={finishing}
+                    >
+                      {finishing ? "Finishing…" : "Finish & resolve tags 🏷️"}
+                    </button>
+                  )}
                 {/* Show finish button once match is won on a playoff hole */}
                 {isMatchplay && matchScore?.matchWon && !isLastHole && (
                   <button
@@ -1211,7 +1267,134 @@ export default function ScorecardPage() {
           </div>
         )}
       </div>
-
+      {/* ── Tag tie — playoff required modal ── */}
+      {tagTieInfo && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "center",
+            zIndex: 200,
+            padding: "1rem",
+          }}
+        >
+          <div
+            style={{
+              background: dm.card,
+              borderRadius: 16,
+              padding: "1.5rem",
+              width: "100%",
+              maxWidth: 480,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                color: dm.text,
+                marginBottom: 8,
+              }}
+            >
+              ⚔️ Playoff required
+            </div>
+            <div
+              style={{
+                fontSize: 15,
+                color: dm.sub,
+                marginBottom: "1.25rem",
+                lineHeight: 1.5,
+              }}
+            >
+              <strong style={{ color: dm.text }}>{tagTieInfo.tiedNames}</strong>{" "}
+              are tied for bag tags. An additional hole must be played to
+              determine the tag order.
+            </div>
+            <div
+              style={{
+                background: dm.input,
+                borderRadius: 8,
+                padding: "0.875rem",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <div style={{ fontSize: 13, color: dm.sub, marginBottom: 6 }}>
+                Tied players
+              </div>
+              {tagTieInfo.tiedPlayers.map((p, i) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: "4px 0",
+                    borderBottom:
+                      i < tagTieInfo.tiedPlayers.length - 1
+                        ? `1px solid ${dm.border}`
+                        : "none",
+                  }}
+                >
+                  <span
+                    style={{ fontSize: 14, fontWeight: 600, color: dm.text }}
+                  >
+                    {p.nickname || p.full_name}
+                  </span>
+                  <span style={{ fontSize: 14, color: dm.sub }}>
+                    {p.total} strokes · Tag #{p.bag_tag_number}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: "0.875rem",
+                  background: dm.input,
+                  color: dm.text,
+                  border: `1.5px solid ${dm.border}`,
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+                onClick={async () => {
+                  // Skip playoff — no tag changes
+                  setTagTieInfo(null);
+                  await supabase
+                    .from("rounds")
+                    .update({ status: "complete" })
+                    .eq("id", roundId);
+                  navigate("/history");
+                }}
+              >
+                Skip — no tag changes
+              </button>
+              <button
+                style={{
+                  flex: 2,
+                  padding: "0.875rem",
+                  background: "#b45309",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  setTagTieInfo(null);
+                  addPlayoffHole();
+                }}
+              >
+                ⚔️ Play playoff hole
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Tag resolution modal ── */}
       {tagResolution && (
         <div
