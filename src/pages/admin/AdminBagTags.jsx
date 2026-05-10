@@ -196,20 +196,20 @@ function MemberTagRow({
 
 const hint = {
   fontSize: 14,
-  color: "t.textSub",
+  color: t.textSub,
   marginTop: 0,
   marginBottom: "1rem",
 };
 const sectionHead = {
   fontSize: 12,
   fontWeight: 600,
-  color: "t.textSub",
+  color: t.textSub,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   margin: "0.75rem 0 0.5rem",
 };
 const card = {
-  background: "t.card",
+  background: t.card,
   borderRadius: 10,
   padding: "0.75rem 1rem",
   marginBottom: 8,
@@ -227,7 +227,7 @@ const tagNum = {
   textAlign: "center",
 };
 const name = { fontWeight: 600, fontSize: 15, color: "t.text" };
-const email = { fontSize: 12, color: "t.textSub" };
+const email = { fontSize: 12, color: t.textSub };
 const editRow = { display: "flex", alignItems: "center", gap: 6 };
 const tagInp = {
   width: 70,
@@ -240,7 +240,7 @@ const tagInp = {
 const saveBtn = {
   padding: "0.4rem 0.75rem",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   border: "none",
   borderRadius: 6,
   fontWeight: 600,
@@ -254,7 +254,7 @@ const cancelBtn = {
   borderRadius: 6,
   fontSize: 13,
   cursor: "pointer",
-  color: "t.textSub",
+  color: t.textSub,
 };
 const editBtn = {
   padding: "0.4rem 0.875rem",
@@ -267,8 +267,8 @@ const editBtn = {
   cursor: "pointer",
 };
 const successBox = {
-  background: "t.succesLight",
-  color: "t.success",
+  background: t.succesLight,
+  color: t.success,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -276,8 +276,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "t.dangerLight",
-  color: "t.danger",
+  background: t.dangerLight,
+  color: t.danger,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

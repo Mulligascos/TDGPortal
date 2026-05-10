@@ -171,7 +171,7 @@ export default function AdminAnnouncements() {
       )}
 
       {announcements.length === 0 && !showForm && (
-        <p style={{ color: "t.textSub" }}>No announcements yet.</p>
+        <p style={{ color: t.textSub }}>No announcements yet.</p>
       )}
 
       {announcements.map((a) => (
@@ -217,7 +217,7 @@ export default function AdminAnnouncements() {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -226,11 +226,11 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "t.card",
+  background: t.card,
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
-  boxShadow: "t.shadow",
+  boxShadow: t.shadow,
   display: "flex",
   flexDirection: "column",
   gap: 10,
@@ -239,7 +239,7 @@ const formTitle = {
   margin: "0 0 0.25rem",
   fontSize: 16,
   fontWeight: 600,
-  color: "t.text",
+  color: t.text,
 };
 const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
 const inp = {
@@ -249,7 +249,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "t.card",
+  background: t.card,
   fontFamily: "inherit",
 };
 const checkRow = {
@@ -262,7 +262,7 @@ const btnRow = { display: "flex", gap: 8, justifyContent: "flex-end" };
 const submitBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -280,7 +280,7 @@ const cancelBtn = {
   cursor: "pointer",
 };
 const announcementCard = {
-  background: "t.card",
+  background: t.card,
   borderRadius: 12,
   padding: "1rem",
   marginBottom: 10,
@@ -326,8 +326,8 @@ const actionBtn = {
   color: "#374151",
 };
 const successBox = {
-  background: "t.succesLight",
-  color: "t.success",
+  background: t.succesLight,
+  color: t.success,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -335,8 +335,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "t.dangerLight",
-  color: "t.danger",
+  background: t.dangerLight,
+  color: t.danger,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",

@@ -282,7 +282,7 @@ export default function AdminMembers() {
 
       <div style={{ marginTop: "0.5rem" }}>
         {members.length === 0 && (
-          <p style={{ color: "t.textSub" }}>No members yet.</p>
+          <p style={{ color: t.textSub }}>No members yet.</p>
         )}
         {members.map((m) => (
           <div key={m.id} style={memberCard}>
@@ -325,7 +325,7 @@ export default function AdminMembers() {
 const addBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -334,11 +334,11 @@ const addBtn = {
   marginBottom: "0.75rem",
 };
 const formCard = {
-  background: "t.card",
+  background: t.card,
   borderRadius: 12,
   padding: "1.25rem",
   marginBottom: "1rem",
-  boxShadow: "t.shadow",
+  boxShadow: t.shadow,
   display: "flex",
   flexDirection: "column",
   gap: 10,
@@ -358,7 +358,7 @@ const inp = {
   fontSize: 15,
   width: "100%",
   boxSizing: "border-box",
-  background: "t.card",
+  background: t.card,
 };
 const disabledInp = { background: "#f9fafb", color: "#9ca3af" };
 const genBtn = {
@@ -387,7 +387,7 @@ const btnRow = {
 const submitBtn = {
   padding: "0.625rem 1.25rem",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   border: "none",
   borderRadius: 8,
   fontWeight: 600,
@@ -405,7 +405,7 @@ const cancelBtn = {
   cursor: "pointer",
 };
 const memberCard = {
-  background: "t.card",
+  background: t.card,
   borderRadius: 10,
   padding: "0.75rem 1rem",
   marginBottom: 8,
@@ -432,7 +432,7 @@ const avatar = {
   height: 36,
   borderRadius: "50%",
   background: "#1d6b3a",
-  color: "t.card",
+  color: t.card,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -442,7 +442,7 @@ const avatar = {
 };
 const nameStyle = { fontWeight: 600, fontSize: 15, color: "t.text" };
 const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
-const emailStyle = { fontSize: 12, color: "t.textSub" };
+const emailStyle = { fontSize: 12, color: t.textSub };
 const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
 const roleBadge = {
   fontSize: 11,
@@ -451,27 +451,27 @@ const roleBadge = {
   borderRadius: 4,
 };
 const adminBadge = { background: "#ede9fe", color: "#7c3aed" };
-const memberBadge = { background: "#f3f4f6", color: "t.textSub" };
+const memberBadge = { background: "#f3f4f6", color: t.textSub };
 const editBtn = {
   fontSize: 12,
   padding: "2px 8px",
   borderRadius: 4,
   border: "1px solid t.border",
-  background: "t.card",
+  background: t.card,
   cursor: "pointer",
   color: "#374151",
 };
 const deleteBtn = {
   padding: "2px 6px",
-  background: "t.card",
+  background: t.card,
   border: "1px solid #fca5a5",
   borderRadius: 6,
   fontSize: 13,
   cursor: "pointer",
 };
 const successBox = {
-  background: "t.succesLight",
-  color: "t.success",
+  background: t.succesLight,
+  color: t.success,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
@@ -479,8 +479,8 @@ const successBox = {
   cursor: "pointer",
 };
 const errorBox = {
-  background: "t.dangerLight",
-  color: "t.danger",
+  background: t.dangerLight,
+  color: t.danger,
   padding: "0.75rem 1rem",
   borderRadius: 8,
   marginBottom: "0.75rem",
