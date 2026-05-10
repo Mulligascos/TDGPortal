@@ -29,7 +29,7 @@ export default function DashboardPage() {
           "rounds(id, played_at, status, format, courses(name), layouts(layout_name))",
         )
         .eq("player_id", profile.id)
-        .order("created_at", { ascending: false })
+        .order("played_at", { ascending: false })
         .limit(5)
         .then(({ data }) =>
           setRecentRounds(data?.map((r) => r.rounds).filter(Boolean) ?? []),
