@@ -513,11 +513,12 @@ export default function ScorecardPage() {
           onClick={() => navigate(-1)}
           style={{
             background: "rgba(255,255,255,0.15)",
-            border: "1px solid rgba(255,255,255,0.3)",
+            border: "2px solid rgba(255,255,255,0.3)",
             color: "#fff",
             borderRadius: 6,
-            padding: "4px 12px",
-            fontSize: 12,
+            padding: "6px 14px",
+            fontSize: 14,
+            fontWeight: 600,
             cursor: "pointer",
           }}
         >
@@ -528,11 +529,12 @@ export default function ScorecardPage() {
             onClick={cancelRound}
             style={{
               background: "rgba(220,38,38,0.25)",
-              border: "1px solid rgba(220,38,38,0.5)",
+              border: "2px solid rgba(220,38,38,0.5)",
               color: "#fca5a5",
               borderRadius: 6,
-              padding: "4px 12px",
-              fontSize: 12,
+              padding: "6px 14px",
+              fontSize: 14,
+              fontWeight: 600,
               cursor: "pointer",
             }}
           >
