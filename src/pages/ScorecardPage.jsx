@@ -1298,10 +1298,10 @@ export default function ScorecardPage() {
                           textAlign: "center",
                           color:
                             relativeToPar < 0
-                              ? "#dc2626"
+                              ? "#16a34a"
                               : relativeToPar > 0
                                 ? "#2563eb"
-                                : "#16a34a",
+                                : "#dc2626",
                         }}
                       >
                         {holesPlayed > 0
@@ -1701,23 +1701,23 @@ export default function ScorecardPage() {
 
 function getRelStyle(rel, dark) {
   if (rel === undefined || rel === null)
-    return { background: "transparent", color: dark ? "#4a5080" : "#9ca3af" };
+    return { background: "transparent", color: dark ? "#ffffff" : "#ffffff" };
   if (rel <= -3)
-    return { background: dark ? "#4668af" : "#dbeafe", color: "#ffffff" }; // -3 or better = light blue
+    return { background: dark ? "#4668af" : "#4668af", color: "#ffffff" }; // -3 or better = light blue
   if (rel === -2)
-    return { background: dark ? "#3ed88b" : "#bbf7d0", color: "#ffffff" }; // -2 = light green
+    return { background: dark ? "#07e978" : "#07e978", color: "#ffffff" }; // -2 = light green
   if (rel === -1)
-    return { background: dark ? "#0d8d2f" : "#dcfce7", color: "#ffffff" }; // -1 = green
+    return { background: dark ? "#0d8d2f" : "#0d8d2f", color: "#ffffff" }; // -1 = green
   if (rel === 0)
     return {
-      background: dark ? "#1a1a2e" : "#f3f4f6",
-      color: dark ? "#7b86c2" : "#6b7280",
+      background: dark ? "#3d3d3f" : "#f3f4f6",
+      color: dark ? "#ffffff" : "#ffffff",
     }; // par = gray
   if (rel === 1)
-    return { background: dark ? "#9b0909" : "#fee2e2", color: "#ffffff" }; // +1 = red
+    return { background: dark ? "#9b0909" : "#9b0909", color: "#ffffff" }; // +1 = red
   if (rel === 2)
-    return { background: dark ? "#b14d06" : "#ffedd5", color: "#ffffff" }; // +2 = orange
+    return { background: dark ? "#b14d06" : "#b14d06", color: "#ffffff" }; // +2 = orange
   if (rel === 3)
-    return { background: dark ? "#570d81" : "#f3e8ff", color: "#ffffff" }; // +3 = purple
-  return { background: dark ? "#6b4b33" : "#f5f0eb", color: "#ffffff" }; // +4+ = brown
+    return { background: dark ? "#570d81" : "#570d81", color: "#ffffff" }; // +3 = purple
+  return { background: dark ? "#6b4b33" : "#6b4b33", color: "#ffffff" }; // +4+ = brown
 }
