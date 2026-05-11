@@ -273,17 +273,18 @@ export default function ScorecardPage() {
     const currentParJson = layout.par_json;
 
     if (round.play_for_tags) {
-      // Get tagged players and their scores
       const playerIds = players.map((p) => p.id);
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, full_name, nickname, bag_tag_number")
         .in("id", playerIds);
 
+      console.log("profiles fetched:", profiles, "error:", profileError);
+
       const taggedPlayers = profiles.filter((p) => p.bag_tag_number != null);
+      console.log("tagged players:", taggedPlayers);
 
       if (taggedPlayers.length >= 2) {
-        // Calculate totals for tagged players using savedScores
         const taggedTotals = taggedPlayers.map((p) => {
           const rows = currentFullOrder
             .map((h) => ({
@@ -297,15 +298,17 @@ export default function ScorecardPage() {
           return { ...p, total };
         });
 
-        // Check for ties between tagged players
-        const scores = taggedTotals.map((p) => p.total);
-        const uniqueScores = new Set(scores);
-        const hasTie = uniqueScores.size < scores.length;
+        console.log("tagged totals:", taggedTotals);
+
+        const scoreValues = taggedTotals.map((p) => p.total);
+        const uniqueScores = new Set(scoreValues);
+        const hasTie = uniqueScores.size < scoreValues.length;
+
+        console.log("scores:", scoreValues, "hasTie:", hasTie);
 
         if (hasTie) {
-          // Find who is tied
           const scoreCounts = {};
-          scores.forEach((s) => {
+          scoreValues.forEach((s) => {
             scoreCounts[s] = (scoreCounts[s] || 0) + 1;
           });
           const tiedScores = Object.entries(scoreCounts)
@@ -317,23 +320,26 @@ export default function ScorecardPage() {
           const tiedNames = tiedPlayers
             .map((p) => p.nickname || p.full_name)
             .join(" & ");
-
           setFinishing(false);
           setTagTieInfo({ tiedNames, tiedPlayers });
           return;
         }
       }
 
-      // No ties — resolve normally
       const resolution = await resolveTagsAfterRound(
         currentFullOrder,
         currentParJson,
       );
+      console.log("resolution:", resolution);
+
       if (resolution && resolution.changes.length > 0) {
         setTagResolution(resolution);
         setFinishing(false);
         return;
       }
+
+      // No changes needed
+      console.log("no tag changes — finishing normally");
     }
 
     await supabase
