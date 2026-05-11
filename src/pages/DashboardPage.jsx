@@ -268,7 +268,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {tr.course_id && tr.layout_id && (
+                {isToday && tr.course_id && tr.layout_id && (
                   <button
                     style={{
                       width: "100%",
