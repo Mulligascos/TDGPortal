@@ -206,22 +206,20 @@ export default function ScorecardPage() {
         .map((h) => ({
           hole_number: h.holeNumber,
           loop: h.loop,
-          strokes: getScore(p.id, h.holeNumber, h.loop),
+          strokes: savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null, // ← use savedScores
         }))
         .filter((s) => s.strokes != null);
       const { total } = calcPlayerScore(rows, parJson);
       return { ...p, total };
     });
 
-    // Sort players by score ascending (lowest = best)
-    const sortedByScore = [...playerTotals].sort((a, b) => a.total - b.total);
+    console.log("resolveTagsAfterRound totals:", playerTotals);
 
-    // Sort tags ascending (lowest number = best rank)
+    const sortedByScore = [...playerTotals].sort((a, b) => a.total - b.total);
     const sortedTags = taggedPlayers
       .map((p) => p.bag_tag_number)
       .sort((a, b) => a - b);
 
-    // Assign best score → lowest tag
     const changes = [];
     sortedByScore.forEach((player, i) => {
       const newTag = sortedTags[i];
@@ -236,6 +234,7 @@ export default function ScorecardPage() {
       }
     });
 
+    console.log("tag changes:", changes);
     return { changes, allPlayers: sortedByScore, sortedTags };
   }
   async function confirmTagChanges() {
