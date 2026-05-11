@@ -512,9 +512,9 @@ export default function ScorecardPage() {
         <button
           onClick={() => navigate(-1)}
           style={{
-            background: "rgba(255,255,255,0.15)",
+            background: d ? "rgba(255,255,255,0.15)" : "#9f9f9f",
             border: "2px solid rgba(255,255,255,0.3)",
-            color: "#fff",
+            color: d ? "#fff" : "#222",
             borderRadius: 6,
             padding: "6px 14px",
             fontSize: 14,
