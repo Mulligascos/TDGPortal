@@ -6,6 +6,60 @@ import { useDarkMode } from "../hooks/useDarkMode";
 import { getTheme } from "../lib/theme";
 import Layout from "../components/shared/Layout";
 
+function Section({ title, count, defaultOpen = true, accent, children, t }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ marginBottom: "0.5rem" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: "100%",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "0.5rem 0",
+          marginBottom: open ? "0.5rem" : 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+            {title}
+          </span>
+          {count != null && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "1px 7px",
+                borderRadius: 10,
+                background: accent ?? t.accentLight,
+                color: accent ? "#fff" : t.accentText,
+              }}
+            >
+              {count}
+            </span>
+          )}
+        </div>
+        <span
+          style={{
+            fontSize: 13,
+            color: t.textSub,
+            transition: "transform 0.2s",
+            display: "inline-block",
+            transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+          }}
+        >
+          ▼
+        </span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { darkMode } = useDarkMode();
@@ -19,7 +73,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const now = new Date().toISOString();
 
-    // Announcements
     supabase
       .from("announcements")
       .select("*")
@@ -28,7 +81,6 @@ export default function DashboardPage() {
       .limit(3)
       .then(({ data }) => setAnnouncements(data ?? []));
 
-    // Upcoming events (next 14 days)
     supabase
       .from("events")
       .select("*, courses(name), layouts(layout_name)")
@@ -37,7 +89,6 @@ export default function DashboardPage() {
       .limit(5)
       .then(({ data }) => setUpcomingEvents(data ?? []));
 
-    // Get published tournament IDs first, then fetch their rounds
     supabase
       .from("tournaments")
       .select("id, name, status, format")
@@ -45,7 +96,6 @@ export default function DashboardPage() {
       .then(async ({ data: publishedTournaments }) => {
         if (!publishedTournaments || publishedTournaments.length === 0) return;
         const tIds = publishedTournaments.map((t) => t.id);
-
         const { data: tRounds, error } = await supabase
           .from("tournament_rounds")
           .select(
@@ -55,23 +105,19 @@ export default function DashboardPage() {
           .gte("scheduled_date", now)
           .order("scheduled_date", { ascending: true })
           .limit(5);
-
         if (error) {
           console.error("tournament rounds error:", error);
           return;
         }
-
-        // Attach tournament info to each round
         const enriched = (tRounds ?? []).map((r) => ({
           ...r,
           tournaments: publishedTournaments.find(
-            (t) => t.id === r.tournament_id,
+            (pt) => pt.id === r.tournament_id,
           ),
         }));
         setUpcomingTournamentRounds(enriched);
       });
 
-    // Recent rounds
     if (profile) {
       supabase
         .from("rounds")
@@ -86,7 +132,6 @@ export default function DashboardPage() {
   }, [profile]);
 
   async function startTournamentRound(tr) {
-    // Navigate to new round page with tournament round pre-filled
     navigate("/round/new", {
       state: {
         tournamentRoundId: tr.id,
@@ -102,84 +147,71 @@ export default function DashboardPage() {
     });
   }
 
-  const hasUpcoming =
-    upcomingEvents.length > 0 || upcomingTournamentRounds.length > 0;
-  console.log("upcoming tournament rounds:", upcomingTournamentRounds);
-  console.log("upcoming events:", upcomingEvents);
+  const upcomingCount = upcomingEvents.length + upcomingTournamentRounds.length;
 
   return (
     <Layout
       title={`G'day, ${profile?.nickname || profile?.full_name?.split(" ")[0] || "Mate"} 👋`}
     >
-      {/* Quick action */}
-      <Link
-        to="/round/new"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          background: t.accent,
-          color: "#fff",
-          padding: "1rem 1.25rem",
-          borderRadius: 12,
-          textDecoration: "none",
-          marginBottom: "0.75rem",
-        }}
-      >
-        <span style={{ fontSize: 32 }}>🥏</span>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>Start a new round</div>
-          <div style={{ fontSize: 13, opacity: 0.8, marginTop: 2 }}>
-            Strokeplay or matchplay
-          </div>
-        </div>
-        <span style={{ marginLeft: "auto", fontSize: 20, opacity: 0.7 }}>
-          →
-        </span>
-      </Link>
-
-      {/* Bag tag */}
-      {profile?.bag_tag_number && (
-        <div
+      {/* Quick actions row */}
+      <div style={{ display: "flex", gap: 10, marginBottom: "1rem" }}>
+        <Link
+          to="/round/new"
           style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
-            gap: 12,
-            background: t.card,
-            borderRadius: 10,
+            gap: 10,
+            background: t.accent,
+            color: "#fff",
             padding: "0.875rem 1rem",
-            marginBottom: "1rem",
-            boxShadow: t.shadow,
+            borderRadius: 12,
+            textDecoration: "none",
           }}
         >
-          <span style={{ fontSize: 28 }}>🏷️</span>
+          <span style={{ fontSize: 26 }}>🥏</span>
           <div>
-            <div style={{ fontSize: 12, color: t.textSub }}>Your bag tag</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: t.accentText }}>
-              #{profile.bag_tag_number}
-            </div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>New round</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>Stroke or match</div>
           </div>
-        </div>
-      )}
-
-      {/* Upcoming events & tournament rounds */}
-      {hasUpcoming && (
-        <>
-          <div
+        </Link>
+        {profile?.bag_tag_number && (
+          <Link
+            to="/bag-tags"
             style={{
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 8,
-              marginTop: "0.25rem",
+              gap: 10,
+              background: t.card,
+              padding: "0.875rem 1rem",
+              borderRadius: 12,
+              textDecoration: "none",
+              boxShadow: t.shadow,
+              minWidth: 100,
             }}
           >
-            <span style={{ fontWeight: 600, fontSize: 15, color: t.text }}>
-              Upcoming
-            </span>
-          </div>
+            <span style={{ fontSize: 22 }}>🏷️</span>
+            <div>
+              <div style={{ fontSize: 11, color: t.textSub }}>Bag tag</div>
+              <div
+                style={{ fontSize: 20, fontWeight: 800, color: t.accentText }}
+              >
+                #{profile.bag_tag_number}
+              </div>
+            </div>
+          </Link>
+        )}
+      </div>
 
-          {/* Tournament rounds */}
+      {/* Upcoming */}
+      {upcomingCount > 0 && (
+        <Section
+          title="Upcoming"
+          count={upcomingCount}
+          accent={t.accent}
+          defaultOpen
+          t={t}
+        >
           {upcomingTournamentRounds.map((tr) => {
             const d = new Date(tr.scheduled_date);
             const isToday = new Date().toDateString() === d.toDateString();
@@ -200,98 +232,85 @@ export default function DashboardPage() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 4,
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <div
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: t.accentLight,
+                      color: t.accentText,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                    }}
+                  >
+                    🏆 Tournament
+                  </span>
+                  {isToday && (
+                    <span
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginBottom: 2,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: t.successLight,
+                        color: t.success,
+                        padding: "1px 6px",
+                        borderRadius: 4,
                       }}
                     >
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: t.accentLight,
-                          color: t.accentText,
-                          padding: "1px 6px",
-                          borderRadius: 4,
-                        }}
-                      >
-                        🏆 Tournament
-                      </span>
-                      {isToday && (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            background: t.successLight,
-                            color: t.success,
-                            padding: "1px 6px",
-                            borderRadius: 4,
-                          }}
-                        >
-                          Today
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{ fontWeight: 700, fontSize: 15, color: t.text }}
-                    >
-                      {tr.tournaments?.name}
-                    </div>
-                    <div
-                      style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}
-                    >
-                      Round {tr.round_number} · {tr.courses?.name ?? "TBC"}{" "}
-                      {tr.layouts ? `· ${tr.layouts.layout_name}` : ""}
-                    </div>
-                    <div
-                      style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
-                    >
-                      {d.toLocaleDateString("en-NZ", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      })}
-                      {" · "}
-                      {d.toLocaleTimeString("en-NZ", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
+                      Today
+                    </span>
+                  )}
                 </div>
-
-                {isToday && tr.course_id && tr.layout_id && (
-                  <button
-                    style={{
-                      width: "100%",
-                      marginTop: 10,
-                      padding: "0.625rem",
-                      background: t.accent,
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 8,
-                      fontWeight: 700,
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                    onClick={() => startTournamentRound(tr)}
-                  >
-                    🥏 Start tournament round
-                  </button>
-                )}
+                <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+                  {tr.tournaments?.name}
+                </div>
+                <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
+                  Round {tr.round_number} · {tr.courses?.name ?? "TBC"}
+                  {tr.layouts ? ` · ${tr.layouts.layout_name}` : ""}
+                </div>
+                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>
+                  {d.toLocaleDateString("en-NZ", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
+                  {" · "}
+                  {d.toLocaleTimeString("en-NZ", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+                <button
+                  style={{
+                    width: "100%",
+                    marginTop: 10,
+                    padding: "0.625rem",
+                    background:
+                      tr.course_id && tr.layout_id ? t.accent : t.textSub,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                  onClick={() =>
+                    tr.course_id && tr.layout_id
+                      ? startTournamentRound(tr)
+                      : alert(
+                          "No course or layout assigned. Ask your admin to update this tournament round.",
+                        )
+                  }
+                >
+                  🥏 Start tournament round
+                </button>
               </div>
             );
           })}
 
-          {/* Regular events */}
           {upcomingEvents.map((ev) => {
             const d = new Date(ev.event_date);
             const isToday = new Date().toDateString() === d.toDateString();
@@ -314,7 +333,7 @@ export default function DashboardPage() {
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
-                    marginBottom: 2,
+                    marginBottom: 4,
                   }}
                 >
                   <span
@@ -380,36 +399,17 @@ export default function DashboardPage() {
               </div>
             );
           })}
-        </>
+        </Section>
       )}
 
-      {/* Announcements */}
+      {/* Latest news */}
       {announcements.length > 0 && (
-        <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-              marginTop: "0.5rem",
-            }}
-          >
-            <span style={{ fontWeight: 600, fontSize: 15, color: t.text }}>
-              Latest news
-            </span>
-            <Link
-              to="/news"
-              style={{
-                fontSize: 13,
-                color: t.accentText,
-                textDecoration: "none",
-                fontWeight: 500,
-              }}
-            >
-              See all →
-            </Link>
-          </div>
+        <Section
+          title="Latest news"
+          count={announcements.length}
+          defaultOpen={false}
+          t={t}
+        >
           {announcements.map((a) => (
             <div
               key={a.id}
@@ -452,36 +452,31 @@ export default function DashboardPage() {
               </div>
             </div>
           ))}
-        </>
+          <Link
+            to="/news"
+            style={{
+              display: "block",
+              textAlign: "center",
+              fontSize: 13,
+              color: t.accentText,
+              textDecoration: "none",
+              fontWeight: 500,
+              padding: "0.25rem 0 0.5rem",
+            }}
+          >
+            See all →
+          </Link>
+        </Section>
       )}
 
       {/* Recent rounds */}
       {recentRounds.length > 0 && (
-        <>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 8,
-              marginTop: "0.5rem",
-            }}
-          >
-            <span style={{ fontWeight: 600, fontSize: 15, color: t.text }}>
-              Recent rounds
-            </span>
-            <Link
-              to="/history"
-              style={{
-                fontSize: 13,
-                color: t.accentText,
-                textDecoration: "none",
-                fontWeight: 500,
-              }}
-            >
-              See all →
-            </Link>
-          </div>
+        <Section
+          title="Recent rounds"
+          count={recentRounds.length}
+          defaultOpen={false}
+          t={t}
+        >
           {recentRounds.map((r) => (
             <Link
               key={r.id}
@@ -537,7 +532,21 @@ export default function DashboardPage() {
               </div>
             </Link>
           ))}
-        </>
+          <Link
+            to="/history"
+            style={{
+              display: "block",
+              textAlign: "center",
+              fontSize: 13,
+              color: t.accentText,
+              textDecoration: "none",
+              fontWeight: 500,
+              padding: "0.25rem 0 0.5rem",
+            }}
+          >
+            See all →
+          </Link>
+        </Section>
       )}
     </Layout>
   );
