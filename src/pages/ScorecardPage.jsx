@@ -241,12 +241,22 @@ export default function ScorecardPage() {
   async function confirmTagChanges() {
     setConfirmingTags(true);
     for (const change of tagResolution.changes) {
-      // Use RPC function which runs with elevated privileges
+      // Update tag via privileged function
       const { error } = await supabase.rpc("assign_bag_tag", {
         target_player_id: change.playerId,
         new_tag_number: change.newTag,
       });
-      if (error) console.error("Tag assign error:", error);
+      if (error) {
+        console.error("Tag assign error:", error);
+        continue;
+      }
+      // Record history separately (uses standard RLS — scorer inserting)
+      await supabase.from("bag_tag_history").insert({
+        tag_number: change.newTag,
+        holder_id: change.playerId,
+        round_id: roundId,
+        notes: `Tag won in round. Score: ${change.score}`,
+      });
     }
     await supabase
       .from("rounds")
