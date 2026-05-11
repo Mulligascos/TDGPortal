@@ -37,17 +37,39 @@ export default function DashboardPage() {
       .limit(5)
       .then(({ data }) => setUpcomingEvents(data ?? []));
 
-    // Upcoming tournament rounds (published tournaments only)
+    // Get published tournament IDs first, then fetch their rounds
     supabase
-      .from("tournament_rounds")
-      .select(
-        "*, tournaments!inner(id, name, status, format), courses(id, name), layouts(id, layout_name, number_of_holes, loops, par_json)",
-      )
-      .eq("tournaments.status", "published")
-      .gte("scheduled_date", now)
-      .order("scheduled_date", { ascending: true })
-      .limit(5)
-      .then(({ data }) => setUpcomingTournamentRounds(data ?? []));
+      .from("tournaments")
+      .select("id, name, status, format")
+      .eq("status", "published")
+      .then(async ({ data: publishedTournaments }) => {
+        if (!publishedTournaments || publishedTournaments.length === 0) return;
+        const tIds = publishedTournaments.map((t) => t.id);
+
+        const { data: tRounds, error } = await supabase
+          .from("tournament_rounds")
+          .select(
+            "*, courses(id, name), layouts(id, layout_name, number_of_holes, loops, par_json)",
+          )
+          .in("tournament_id", tIds)
+          .gte("scheduled_date", now)
+          .order("scheduled_date", { ascending: true })
+          .limit(5);
+
+        if (error) {
+          console.error("tournament rounds error:", error);
+          return;
+        }
+
+        // Attach tournament info to each round
+        const enriched = (tRounds ?? []).map((r) => ({
+          ...r,
+          tournaments: publishedTournaments.find(
+            (t) => t.id === r.tournament_id,
+          ),
+        }));
+        setUpcomingTournamentRounds(enriched);
+      });
 
     // Recent rounds
     if (profile) {
