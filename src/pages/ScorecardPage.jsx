@@ -1710,7 +1710,7 @@ function getRelStyle(rel, dark) {
     return { background: dark ? "#0d8d2f" : "#0d8d2f", color: "#ffffff" }; // -1 = green
   if (rel === 0)
     return {
-      background: dark ? "#3d3d3f" : "#f3f4f6",
+      background: dark ? "#3d3d3f" : "#3d3d3f",
       color: dark ? "#ffffff" : "#ffffff",
     }; // par = gray
   if (rel === 1)
