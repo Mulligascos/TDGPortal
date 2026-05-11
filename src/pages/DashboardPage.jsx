@@ -275,7 +275,7 @@ export default function DashboardPage() {
           title="Upcoming"
           count={upcomingCount}
           accent={t.accent}
-          defaultOpen
+          defaultOpen={false}
           t={t}
         >
           {upcomingTournamentRounds.map((tr) => {
