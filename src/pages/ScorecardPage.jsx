@@ -3,6 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import {
+  scorecardSave,
+  scorecardLoad,
+  scorecardClear,
+  cacheClear,
+} from "../lib/localCache";
+import {
   getPlayOrder,
   getParForHole,
   calcPlayerScore,
@@ -77,9 +83,22 @@ export default function ScorecardPage() {
     for (const s of existingScores ?? []) {
       scoreMap[scoreKey(s.player_id, s.hole_number, s.loop)] = s.strokes;
     }
-    setScores(scoreMap);
-    setSavedScores(scoreMap); // both start from DB
+    setSavedScores(scoreMap);
 
+    // Restore any unsaved local scores (e.g. after browser close mid-hole)
+    const cached = scorecardLoad(roundId);
+    if (cached?.scores) {
+      // Merge: DB scores are the baseline, local scores override for unsaved holes
+      const merged = { ...scoreMap, ...cached.scores };
+      setScores(merged);
+      console.log(
+        "Restored",
+        Object.keys(cached.scores).length,
+        "scores from local cache",
+      );
+    } else {
+      setScores(scoreMap);
+    }
     // Detect stored playoff holes
     const maxPlayOrder = Math.max(
       0,
@@ -117,10 +136,12 @@ export default function ScorecardPage() {
   }
 
   function updateScore(playerId, holeNumber, loop, strokes) {
-    setScores((prev) => ({
-      ...prev,
-      [scoreKey(playerId, holeNumber, loop)]: strokes,
-    }));
+    setScores((prev) => {
+      const next = { ...prev, [scoreKey(playerId, holeNumber, loop)]: strokes };
+      // Persist to localStorage immediately on every change
+      scorecardSave(roundId, { scores: next, currentHoleIndex });
+      return next;
+    });
   }
 
   function goToHole(index) {
@@ -134,12 +155,12 @@ export default function ScorecardPage() {
           const k = scoreKey(p.id, hole.holeNumber, hole.loop);
           if (next[k] == null) next[k] = hole.par;
         }
+        scorecardSave(roundId, { scores: next, currentHoleIndex: index });
         return next;
       });
     }
     setCurrentHoleIndex(index);
   }
-
   async function saveHole(nextIndex) {
     if (!isOwner) return;
     setSaving(true);
@@ -354,6 +375,8 @@ export default function ScorecardPage() {
       .update({ status: "complete" })
       .eq("id", roundId);
     setConfirmingTags(false);
+    scorecardClear(roundId);
+    cacheClear("bagtags:list"); // force fresh fetch after tag changes
     window.location.href = "/history";
   }
 
@@ -1491,6 +1514,7 @@ export default function ScorecardPage() {
                     .from("rounds")
                     .update({ status: "complete" })
                     .eq("id", roundId);
+                  scorecardClear(roundId);
                   window.location.href = "/history";
                 }}
               >

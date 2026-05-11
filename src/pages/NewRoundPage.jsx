@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
+import { cacheSet, cacheGet, cacheClear } from "../lib/localCache";
 import Layout from "../components/shared/Layout";
 
 const STEPS = ["Course", "Layout", "Players", "Start"];
@@ -9,6 +10,8 @@ const STEPS = ["Course", "Layout", "Players", "Start"];
 export default function NewRoundPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tournamentState = location.state ?? null;
 
   const [step, setStep] = useState(0);
   const [courses, setCourses] = useState([]);
@@ -23,69 +26,141 @@ export default function NewRoundPage() {
   const [playForTags, setPlayForTags] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const location = useLocation();
-  const tournamentState = location.state ?? null;
 
-  // Load courses on mount
+  // ── Restore saved setup from localStorage on mount ──────
   useEffect(() => {
-    supabase
-      .from("courses")
-      .select("*")
-      .order("name")
-      .then(({ data }) => {
-        setCourses(data ?? []);
+    // Don't restore if coming from tournament (has its own prefill)
+    if (tournamentState?.prefilledFromTournament) return;
 
-        // Pre-fill from tournament if navigated from dashboard
-        if (tournamentState?.prefilledFromTournament) {
-          const course = {
-            id: tournamentState.courseId,
-            name: tournamentState.courseName,
-          };
-          setSelectedCourse(course);
-          setFormat(tournamentState.format ?? "strokeplay");
-          setStep(1); // skip to layout step
-        }
-      });
+    const cached = cacheGet("newRound:setup");
+    if (cached) {
+      setSelectedCourse(cached.selectedCourse ?? null);
+      setSelectedLayout(cached.selectedLayout ?? null);
+      setStartingHole(cached.startingHole ?? 1);
+      setFormat(cached.format ?? "strokeplay");
+      setSelectedPlayers(cached.selectedPlayers ?? []);
+      setPlayForTags(cached.playForTags ?? false);
+      setStep(cached.step ?? 0);
+    }
   }, []);
 
-  // Load layouts when course selected
+  // ── Persist setup to localStorage whenever key state changes ──
+  useEffect(() => {
+    if (!selectedCourse) return; // nothing worth saving yet
+    cacheSet(
+      "newRound:setup",
+      {
+        selectedCourse,
+        selectedLayout,
+        startingHole,
+        format,
+        selectedPlayers,
+        playForTags,
+        step,
+      },
+      30 * 60 * 1000,
+    ); // 30 minute TTL
+  }, [
+    selectedCourse,
+    selectedLayout,
+    startingHole,
+    format,
+    selectedPlayers,
+    playForTags,
+    step,
+  ]);
+
+  // ── Load courses (cached) ────────────────────────────────
+  useEffect(() => {
+    const cached = cacheGet("courses:list");
+    if (cached) {
+      setCourses(cached);
+    } else {
+      supabase
+        .from("courses")
+        .select("*")
+        .order("name")
+        .then(({ data }) => {
+          setCourses(data ?? []);
+          cacheSet("courses:list", data ?? [], 10 * 60 * 1000);
+        });
+    }
+
+    // Pre-fill from tournament if navigated from dashboard
+    if (tournamentState?.prefilledFromTournament) {
+      const course = {
+        id: tournamentState.courseId,
+        name: tournamentState.courseName,
+      };
+      setSelectedCourse(course);
+      setFormat(tournamentState.format ?? "strokeplay");
+      setStep(1);
+    }
+  }, []);
+
+  // ── Load layouts when course changes (cached) ────────────
   useEffect(() => {
     if (!selectedCourse) return;
-    supabase
-      .from("layouts")
-      .select("*")
-      .eq("course_id", selectedCourse.id)
-      .order("layout_name")
-      .then(({ data }) => {
-        setLayouts(data ?? []);
-
-        // Pre-fill layout from tournament
-        if (
-          tournamentState?.prefilledFromTournament &&
-          tournamentState.layoutId
-        ) {
-          const layout = data?.find((l) => l.id === tournamentState.layoutId);
-          if (layout) {
-            setSelectedLayout(layout);
-            setStep(2); // skip to players step
-          }
+    const cacheKey = `layouts:${selectedCourse.id}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      setLayouts(cached);
+      // Pre-fill layout from tournament
+      if (
+        tournamentState?.prefilledFromTournament &&
+        tournamentState.layoutId
+      ) {
+        const layout = cached.find((l) => l.id === tournamentState.layoutId);
+        if (layout) {
+          setSelectedLayout(layout);
+          setStep(2);
         }
-      });
+      }
+    } else {
+      supabase
+        .from("layouts")
+        .select("*")
+        .eq("course_id", selectedCourse.id)
+        .order("layout_name")
+        .then(({ data }) => {
+          setLayouts(data ?? []);
+          cacheSet(cacheKey, data ?? [], 10 * 60 * 1000);
+          // Pre-fill layout from tournament
+          if (
+            tournamentState?.prefilledFromTournament &&
+            tournamentState.layoutId
+          ) {
+            const layout = (data ?? []).find(
+              (l) => l.id === tournamentState.layoutId,
+            );
+            if (layout) {
+              setSelectedLayout(layout);
+              setStep(2);
+            }
+          }
+        });
+    }
     setStartingHole(1);
   }, [selectedCourse]);
 
-  // Load members when reaching players step
+  // ── Load members when reaching players step ──────────────
   useEffect(() => {
     if (step !== 2) return;
-    supabase
-      .from("profiles")
-      .select("id, full_name, nickname, bag_tag_number")
-      .order("full_name")
-      .then(({ data }) => {
-        setMembers(data ?? []);
-        // Pre-select the scorer
-        setSelectedPlayers((prev) => (prev.length ? prev : [user.id]));
-      });
+    const cached = cacheGet("members:list");
+    if (cached) {
+      setMembers(cached);
+      setSelectedPlayers((prev) => (prev.length ? prev : [user.id]));
+    } else {
+      supabase
+        .from("profiles")
+        .select("id, full_name, nickname, bag_tag_number")
+        .order("full_name")
+        .then(({ data }) => {
+          setMembers(data ?? []);
+          cacheSet("members:list", data ?? [], 5 * 60 * 1000);
+          setSelectedPlayers((prev) => (prev.length ? prev : [user.id]));
+        });
+    }
   }, [step]);
 
   // Reset play for tags if format changes or fewer than 2 players
@@ -101,7 +176,6 @@ export default function NewRoundPage() {
     );
   }
 
-  // How many selected players actually have bag tags
   const taggedSelectedCount = members.filter(
     (m) => selectedPlayers.includes(m.id) && m.bag_tag_number != null,
   ).length;
@@ -125,7 +199,6 @@ export default function NewRoundPage() {
 
       if (roundErr) throw roundErr;
 
-      // Add players
       const playerRows = selectedPlayers.map((pid) => ({
         round_id: round.id,
         player_id: pid,
@@ -142,6 +215,9 @@ export default function NewRoundPage() {
           .update({ round_id: round.id })
           .eq("id", tournamentState.tournamentRoundId);
       }
+
+      // Clear the saved setup — round has started
+      cacheClear("newRound:setup");
 
       navigate(`/round/${round.id}`);
     } catch (err) {
@@ -349,7 +425,6 @@ export default function NewRoundPage() {
               })}
             </div>
 
-            {/* Play for tags toggle — strokeplay only, 2+ tagged players selected */}
             {format === "strokeplay" && taggedSelectedCount >= 2 && (
               <div
                 style={styles.toggleRow}
@@ -410,6 +485,21 @@ export default function NewRoundPage() {
           <div>
             <h2 style={styles.stepTitle}>Ready to start</h2>
             <div style={styles.summary}>
+              {tournamentState?.prefilledFromTournament && (
+                <div
+                  style={{
+                    ...styles.summaryRow,
+                    background: "#f0faf4",
+                    borderRadius: 6,
+                    padding: "6px 8px",
+                  }}
+                >
+                  <span>Tournament</span>
+                  <strong style={{ color: "#1d6b3a" }}>
+                    🏆 {tournamentState.tournamentName}
+                  </strong>
+                </div>
+              )}
               <div style={styles.summaryRow}>
                 <span>Course</span>
                 <strong>{selectedCourse?.name}</strong>
@@ -437,21 +527,6 @@ export default function NewRoundPage() {
                   {format}
                 </strong>
               </div>
-              {tournamentState?.prefilledFromTournament && (
-                <div
-                  style={{
-                    ...styles.summaryRow,
-                    background: t?.accentLight ?? "#f0faf4",
-                    borderRadius: 6,
-                    padding: "6px 8px",
-                  }}
-                >
-                  <span>Tournament</span>
-                  <strong style={{ color: "#1d6b3a" }}>
-                    🏆 {tournamentState.tournamentName}
-                  </strong>
-                </div>
-              )}
               <div style={styles.summaryRow}>
                 <span>Players</span>
                 <strong>

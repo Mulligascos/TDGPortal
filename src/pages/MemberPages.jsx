@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { getTheme } from "../lib/theme";
 import Layout from "../components/shared/Layout";
+import { cacheGet, cacheSet } from "../lib/localCache";
 
 // ── HistoryPage ───────────────────────────────────────────
 export function HistoryPage() {
@@ -286,12 +287,20 @@ export function BagTagsPage() {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
+    const cached = cacheGet("bagtags:list");
+    if (cached) {
+      setMembers(cached);
+      return;
+    }
     supabase
       .from("profiles")
       .select("id, full_name, nickname, bag_tag_number, handicap")
       .not("bag_tag_number", "is", null)
       .order("bag_tag_number")
-      .then(({ data }) => setMembers(data ?? []));
+      .then(({ data }) => {
+        setMembers(data ?? []);
+        cacheSet("bagtags:list", data ?? [], 2 * 60 * 1000); // 2 min — changes more often
+      });
   }, []);
 
   return (
@@ -363,12 +372,20 @@ export function NewsPage() {
   const [items, setItems] = useState([]);
 
   useEffect(() => {
+    const cached = cacheGet("announcements:list");
+    if (cached) {
+      setItems(cached);
+      return;
+    }
     supabase
       .from("announcements")
       .select("*, profiles(full_name, nickname)")
       .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })
-      .then(({ data }) => setItems(data ?? []));
+      .then(({ data }) => {
+        setItems(data ?? []);
+        cacheSet("announcements:list", data ?? [], 5 * 60 * 1000);
+      });
   }, []);
 
   return (
