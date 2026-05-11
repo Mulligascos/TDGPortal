@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import Layout from "../../components/shared/Layout";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
+import { useAppData } from "../../hooks/useAppData";
 
 const TYPE_LABELS = {
   hazard: "⚠️ Hazard",
@@ -25,6 +26,7 @@ export default function AdminReports() {
   const [updating, setUpdating] = useState(null);
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
+  const { refresh } = useAppData();
 
   useEffect(() => {
     loadReports();
@@ -54,6 +56,7 @@ export default function AdminReports() {
       .eq("id", report.id);
     setUpdating(null);
     loadReports();
+    refresh("reports");
   }
 
   async function deleteReport(id) {

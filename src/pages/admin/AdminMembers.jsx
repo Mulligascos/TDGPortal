@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import Layout from "../../components/shared/Layout";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
+import { useAppData } from "../../hooks/useAppData";
 
 export default function AdminMembers() {
   const [members, setMembers] = useState([]);
@@ -20,6 +21,7 @@ export default function AdminMembers() {
   const [success, setSuccess] = useState(null);
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
+  const { refresh } = useAppData();
 
   useEffect(() => {
     loadMembers();
@@ -162,6 +164,7 @@ export default function AdminMembers() {
     if (!confirm(`Remove ${member.full_name} from the club?`)) return;
     await supabase.from("profiles").delete().eq("id", member.id);
     loadMembers();
+    refresh("members");
   }
 
   function generatePassword() {

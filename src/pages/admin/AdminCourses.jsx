@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import Layout from "../../components/shared/Layout";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
+import { useAppData } from "../../hooks/useAppData";
 
 export default function AdminCourses() {
   const [courses, setCourses] = useState([]);
@@ -146,6 +147,7 @@ export default function AdminCourses() {
         return;
       }
       setSuccess("Course added!");
+      refresh("courses");
     }
 
     cancelCourseForm();
@@ -192,6 +194,7 @@ export default function AdminCourses() {
         return;
       }
       setSuccess("Layout added!");
+      refresh("layouts");
     }
 
     cancelLayoutForm();
@@ -204,12 +207,14 @@ export default function AdminCourses() {
     await supabase.from("courses").delete().eq("id", id);
     loadCourses();
     setExpanded(null);
+    refresh("courses");
   }
 
   async function deleteLayout(id, courseId) {
     if (!confirm("Delete this layout?")) return;
     await supabase.from("layouts").delete().eq("id", id);
     loadLayouts(courseId);
+    refresh("layouts");
   }
 
   const totalPar = (parArray, loops) =>

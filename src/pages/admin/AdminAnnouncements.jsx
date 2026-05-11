@@ -4,6 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import Layout from "../../components/shared/Layout";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
+import { useAppData } from "../../hooks/useAppData";
 
 export default function AdminAnnouncements() {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export default function AdminAnnouncements() {
   const [success, setSuccess] = useState(null);
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
+  const { refresh } = useAppData();
 
   useEffect(() => {
     loadAnnouncements();
@@ -75,6 +77,7 @@ export default function AdminAnnouncements() {
         return;
       }
       setSuccess("Announcement posted!");
+      refresh("announcements");
     }
 
     setForm({ title: "", body: "", pinned: false });
@@ -87,6 +90,7 @@ export default function AdminAnnouncements() {
     if (!confirm("Delete this announcement?")) return;
     await supabase.from("announcements").delete().eq("id", id);
     loadAnnouncements();
+    refresh("announcements");
   }
 
   async function togglePin(a) {
