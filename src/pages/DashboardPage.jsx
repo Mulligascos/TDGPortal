@@ -202,6 +202,72 @@ export default function DashboardPage() {
           </Link>
         )}
       </div>
+      {/* Latest news */}
+      {announcements.length > 0 && (
+        <Section
+          title="Latest news"
+          count={announcements.length}
+          defaultOpen={true}
+          t={t}
+        >
+          {announcements.map((a) => (
+            <div
+              key={a.id}
+              style={{
+                background: t.card,
+                borderRadius: 10,
+                padding: "0.875rem 1rem",
+                marginBottom: 8,
+                boxShadow: t.shadow,
+              }}
+            >
+              {a.pinned && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#92400e",
+                    background: "#fef3c7",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    marginBottom: 4,
+                    display: "inline-block",
+                  }}
+                >
+                  📌 Pinned
+                </span>
+              )}
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 15,
+                  color: t.text,
+                  marginBottom: 4,
+                }}
+              >
+                {a.title}
+              </div>
+              <div style={{ fontSize: 14, color: t.textSub, lineHeight: 1.4 }}>
+                {a.body.slice(0, 120)}
+                {a.body.length > 120 ? "…" : ""}
+              </div>
+            </div>
+          ))}
+          <Link
+            to="/news"
+            style={{
+              display: "block",
+              textAlign: "center",
+              fontSize: 13,
+              color: t.accentText,
+              textDecoration: "none",
+              fontWeight: 500,
+              padding: "0.25rem 0 0.5rem",
+            }}
+          >
+            See all →
+          </Link>
+        </Section>
+      )}
 
       {/* Upcoming */}
       {upcomingCount > 0 && (
@@ -399,73 +465,6 @@ export default function DashboardPage() {
               </div>
             );
           })}
-        </Section>
-      )}
-
-      {/* Latest news */}
-      {announcements.length > 0 && (
-        <Section
-          title="Latest news"
-          count={announcements.length}
-          defaultOpen={false}
-          t={t}
-        >
-          {announcements.map((a) => (
-            <div
-              key={a.id}
-              style={{
-                background: t.card,
-                borderRadius: 10,
-                padding: "0.875rem 1rem",
-                marginBottom: 8,
-                boxShadow: t.shadow,
-              }}
-            >
-              {a.pinned && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#92400e",
-                    background: "#fef3c7",
-                    padding: "1px 6px",
-                    borderRadius: 4,
-                    marginBottom: 4,
-                    display: "inline-block",
-                  }}
-                >
-                  📌 Pinned
-                </span>
-              )}
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: t.text,
-                  marginBottom: 4,
-                }}
-              >
-                {a.title}
-              </div>
-              <div style={{ fontSize: 14, color: t.textSub, lineHeight: 1.4 }}>
-                {a.body.slice(0, 120)}
-                {a.body.length > 120 ? "…" : ""}
-              </div>
-            </div>
-          ))}
-          <Link
-            to="/news"
-            style={{
-              display: "block",
-              textAlign: "center",
-              fontSize: 13,
-              color: t.accentText,
-              textDecoration: "none",
-              fontWeight: 500,
-              padding: "0.25rem 0 0.5rem",
-            }}
-          >
-            See all →
-          </Link>
         </Section>
       )}
 
