@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { cacheSet, cacheGet, cacheClear } from "../lib/localCache";
 import Layout from "../components/shared/Layout";
+import { useAppData } from "../hooks/useAppData";
 
 const STEPS = ["Course", "Layout", "Players", "Start"];
 

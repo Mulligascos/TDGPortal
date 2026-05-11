@@ -1,12 +1,11 @@
-// ── HistoryPage ───────────────────────────────────────────
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { useDarkMode } from "../hooks/useDarkMode";
+import { useAppData } from "../hooks/useAppData";
 import { getTheme } from "../lib/theme";
 import Layout from "../components/shared/Layout";
-import { cacheGet, cacheSet } from "../lib/localCache";
 
 // ── HistoryPage ───────────────────────────────────────────
 export function HistoryPage() {
@@ -25,32 +24,21 @@ export function HistoryPage() {
   async function load() {
     setLoading(true);
     setError(null);
-
-    // Direct join — avoid the two-step approach entirely
     const { data, error } = await supabase
       .from("rounds")
       .select(
         `
-        id,
-        played_at,
-        status,
-        format,
-        starting_hole,
-        play_for_tags,
-        created_by,
-        courses ( name ),
-        layouts ( layout_name, number_of_holes, loops ),
-        round_players!inner ( player_id )
+        id, played_at, status, format, starting_hole, play_for_tags, created_by,
+        courses(name), layouts(layout_name, number_of_holes, loops),
+        round_players!inner(player_id)
       `,
       )
       .eq("round_players.player_id", user.id)
       .order("played_at", { ascending: false });
-
     if (error) {
-      console.error("History query error:", error);
+      console.error("History error:", error);
       setError(error.message);
     }
-
     setRounds(data ?? []);
     setLoading(false);
   }
@@ -75,7 +63,6 @@ export function HistoryPage() {
           Loading...
         </div>
       )}
-
       {error && (
         <div
           style={{
@@ -90,7 +77,6 @@ export function HistoryPage() {
           Error: {error}
         </div>
       )}
-
       {!loading && rounds.length === 0 && !error && (
         <div style={{ textAlign: "center", padding: "2rem" }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>🥏</div>
@@ -99,8 +85,6 @@ export function HistoryPage() {
           </div>
         </div>
       )}
-
-      {/* In progress rounds */}
       {inProgress.length > 0 && (
         <>
           <div
@@ -127,8 +111,6 @@ export function HistoryPage() {
           ))}
         </>
       )}
-
-      {/* Completed rounds */}
       {completed.length > 0 && (
         <>
           <div
@@ -164,7 +146,6 @@ function RoundCard({ r, t, userId, onRemove, removing }) {
   const totalHoles = r.layouts
     ? r.layouts.number_of_holes * r.layouts.loops
     : "?";
-
   return (
     <div
       style={{
@@ -229,8 +210,6 @@ function RoundCard({ r, t, userId, onRemove, removing }) {
           </div>
         </div>
       </div>
-
-      {/* Actions */}
       <div
         style={{
           display: "flex",
@@ -280,35 +259,26 @@ function RoundCard({ r, t, userId, onRemove, removing }) {
   );
 }
 
-// ── BagTagsPage ──────────────────────────────────────────
+// ── BagTagsPage — uses AppData (no fetch) ─────────────────
 export function BagTagsPage() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
-  const [members, setMembers] = useState([]);
+  const { members, loaded } = useAppData();
 
-  useEffect(() => {
-    const cached = cacheGet("bagtags:list");
-    if (cached) {
-      setMembers(cached);
-      return;
-    }
-    supabase
-      .from("profiles")
-      .select("id, full_name, nickname, bag_tag_number, handicap")
-      .not("bag_tag_number", "is", null)
-      .order("bag_tag_number")
-      .then(({ data }) => {
-        setMembers(data ?? []);
-        cacheSet("bagtags:list", data ?? [], 2 * 60 * 1000); // 2 min — changes more often
-      });
-  }, []);
+  const tagged = members
+    .filter((m) => m.bag_tag_number != null)
+    .sort((a, b) => a.bag_tag_number - b.bag_tag_number);
 
   return (
     <Layout title="Bag tags">
       <p style={{ color: t.textSub, fontSize: 14, marginTop: 0 }}>
         Lower tag = higher rank. Challenge the holder to take their tag!
       </p>
-      {members.map((m, i) => (
+      {!loaded && <p style={{ color: t.textSub }}>Loading...</p>}
+      {loaded && tagged.length === 0 && (
+        <p style={{ color: t.textSub }}>No bag tags assigned yet.</p>
+      )}
+      {tagged.map((m, i) => (
         <div
           key={m.id}
           style={{
@@ -358,42 +328,23 @@ export function BagTagsPage() {
           )}
         </div>
       ))}
-      {members.length === 0 && (
-        <p style={{ color: t.textSub }}>No bag tags assigned yet.</p>
-      )}
     </Layout>
   );
 }
 
-// ── NewsPage ────────────────────────────────────────────
+// ── NewsPage — uses AppData (no fetch) ────────────────────
 export function NewsPage() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
-  const [items, setItems] = useState([]);
-
-  useEffect(() => {
-    const cached = cacheGet("announcements:list");
-    if (cached) {
-      setItems(cached);
-      return;
-    }
-    supabase
-      .from("announcements")
-      .select("*, profiles(full_name, nickname)")
-      .order("pinned", { ascending: false })
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setItems(data ?? []);
-        cacheSet("announcements:list", data ?? [], 5 * 60 * 1000);
-      });
-  }, []);
+  const { announcements, loaded } = useAppData();
 
   return (
     <Layout title="News & announcements">
-      {items.length === 0 && (
+      {!loaded && <p style={{ color: t.textSub }}>Loading...</p>}
+      {loaded && announcements.length === 0 && (
         <p style={{ color: t.textSub }}>No announcements yet.</p>
       )}
-      {items.map((a) => (
+      {announcements.map((a) => (
         <div
           key={a.id}
           style={{
@@ -447,34 +398,24 @@ export function NewsPage() {
   );
 }
 
-// ── ReportsPage ──────────────────────────────────────────
+// ── ReportsPage — submits new reports, reads from AppData ─
 export function ReportsPage() {
   const { user } = useAuth();
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
+  const { courses, reports, refresh } = useAppData();
   const [type, setType] = useState("hazard");
   const [description, setDescription] = useState("");
   const [courseId, setCourseId] = useState("");
   const [holeNumber, setHoleNumber] = useState("");
-  const [courses, setCourses] = useState([]);
-  const [submitted, setSubmitted] = useState(false);
-  const [myReports, setMyReports] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  useEffect(() => {
-    supabase
-      .from("courses")
-      .select("id, name")
-      .then(({ data }) => setCourses(data ?? []));
-    supabase
-      .from("reports")
-      .select("*, courses(name)")
-      .eq("reported_by", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setMyReports(data ?? []));
-  }, [submitted]);
+  const myReports = reports.filter((r) => r.reported_by === user.id);
 
   async function submit(e) {
     e.preventDefault();
+    setSubmitting(true);
     await supabase.from("reports").insert({
       type,
       description,
@@ -484,7 +425,11 @@ export function ReportsPage() {
     });
     setDescription("");
     setHoleNumber("");
-    setSubmitted((s) => !s);
+    setCourseId("");
+    setSubmitting(false);
+    setSubmitSuccess(true);
+    refresh("reports"); // refresh reports in app data
+    setTimeout(() => setSubmitSuccess(false), 3000);
   }
 
   const typeLabels = {
@@ -493,6 +438,7 @@ export function ReportsPage() {
     found_disc: "🟢 Found disc",
     suggestion: "💡 Suggestion",
   };
+
   const inp = {
     padding: "0.625rem 0.75rem",
     borderRadius: 8,
@@ -525,6 +471,20 @@ export function ReportsPage() {
         >
           Submit a report
         </h2>
+        {submitSuccess && (
+          <div
+            style={{
+              background: t.successLight,
+              color: t.success,
+              padding: "0.75rem",
+              borderRadius: 8,
+              marginBottom: "0.75rem",
+              fontSize: 14,
+            }}
+          >
+            ✓ Report submitted successfully
+          </div>
+        )}
         <form
           onSubmit={submit}
           style={{ display: "flex", flexDirection: "column", gap: 10 }}
@@ -584,6 +544,7 @@ export function ReportsPage() {
           />
           <button
             type="submit"
+            disabled={submitting}
             style={{
               padding: "0.75rem",
               background: t.accent,
@@ -595,7 +556,7 @@ export function ReportsPage() {
               cursor: "pointer",
             }}
           >
-            Submit
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </form>
       </div>
@@ -662,7 +623,6 @@ export function ReportsPage() {
     </Layout>
   );
 }
-
 // ── Shared styles ────────────────────────────────────────
 const cardStyle = {
   display: "flex",
