@@ -354,7 +354,7 @@ export default function ScorecardPage() {
       .update({ status: "complete" })
       .eq("id", roundId);
     setConfirmingTags(false);
-    navigate("/history");
+    window.location.href = "/history";
   }
 
   async function declineTagChanges() {
@@ -1491,7 +1491,7 @@ export default function ScorecardPage() {
                     .from("rounds")
                     .update({ status: "complete" })
                     .eq("id", roundId);
-                  navigate("/history");
+                  window.location.href = "/history";
                 }}
               >
                 Skip — no tag changes
