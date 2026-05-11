@@ -585,8 +585,8 @@ export default function ScorecardPage() {
               <div
                 style={{
                   background: d ? "#0d3d1f" : "#f0faf4",
-                  color: "#1d6b3a",
-                  padding: "4px 14px",
+                  color: d ? "#fff" : "#1d6b3a",
+                  padding: "6px 14px",
                   borderRadius: 20,
                   fontWeight: 700,
                   fontSize: 15,
@@ -958,7 +958,7 @@ export default function ScorecardPage() {
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: 8,
+            gap: 14,
             justifyContent: "center",
             marginBottom: "0.75rem",
             padding: "0.5rem",
@@ -1703,21 +1703,21 @@ function getRelStyle(rel, dark) {
   if (rel === undefined || rel === null)
     return { background: "transparent", color: dark ? "#4a5080" : "#9ca3af" };
   if (rel <= -3)
-    return { background: dark ? "#0a1a3d" : "#dbeafe", color: "#1d4ed8" }; // -3 or better = light blue
+    return { background: dark ? "#4668af" : "#dbeafe", color: "#ffffff" }; // -3 or better = light blue
   if (rel === -2)
-    return { background: dark ? "#0a2a1a" : "#bbf7d0", color: "#15803d" }; // -2 = light green
+    return { background: dark ? "#3ed88b" : "#bbf7d0", color: "#ffffff" }; // -2 = light green
   if (rel === -1)
-    return { background: dark ? "#0d3d1a" : "#dcfce7", color: "#16a34a" }; // -1 = green
+    return { background: dark ? "#0d8d2f" : "#dcfce7", color: "#ffffff" }; // -1 = green
   if (rel === 0)
     return {
       background: dark ? "#1a1a2e" : "#f3f4f6",
       color: dark ? "#7b86c2" : "#6b7280",
     }; // par = gray
   if (rel === 1)
-    return { background: dark ? "#3d0a0a" : "#fee2e2", color: "#dc2626" }; // +1 = red
+    return { background: dark ? "#9b0909" : "#fee2e2", color: "#ffffff" }; // +1 = red
   if (rel === 2)
-    return { background: dark ? "#3d1f0a" : "#ffedd5", color: "#ea580c" }; // +2 = orange
+    return { background: dark ? "#b14d06" : "#ffedd5", color: "#ffffff" }; // +2 = orange
   if (rel === 3)
-    return { background: dark ? "#2a0a3d" : "#f3e8ff", color: "#9333ea" }; // +3 = purple
-  return { background: dark ? "#2a1505" : "#f5f0eb", color: "#92400e" }; // +4+ = brown
+    return { background: dark ? "#570d81" : "#f3e8ff", color: "#ffffff" }; // +3 = purple
+  return { background: dark ? "#6b4b33" : "#f5f0eb", color: "#ffffff" }; // +4+ = brown
 }
