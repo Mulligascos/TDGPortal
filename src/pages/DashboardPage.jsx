@@ -104,6 +104,8 @@ export default function DashboardPage() {
 
   const hasUpcoming =
     upcomingEvents.length > 0 || upcomingTournamentRounds.length > 0;
+  console.log("upcoming tournament rounds:", upcomingTournamentRounds);
+  console.log("upcoming events:", upcomingEvents);
 
   return (
     <Layout
@@ -265,7 +267,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-                {isToday && tr.course_id && tr.layout_id && (
+
+                {tr.course_id && tr.layout_id && (
                   <button
                     style={{
                       width: "100%",
