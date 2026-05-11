@@ -5,13 +5,47 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
 
 export default function AdminBagTags() {
+  const { darkMode } = useDarkMode();
+  const t = getTheme(darkMode);
   const [members, setMembers] = useState([]);
-  const [assigning, setAssigning] = useState(null); // member id being edited
+  const [assigning, setAssigning] = useState(null);
   const [tagInput, setTagInput] = useState("");
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const { darkMode } = useDarkMode();
-  const t = getTheme(darkMode);
+
+  // All styles inside component so t is in scope
+  const hint = {
+    fontSize: 14,
+    color: t.textSub,
+    marginTop: 0,
+    marginBottom: "1rem",
+  };
+  const sectionHead = {
+    fontSize: 12,
+    fontWeight: 600,
+    color: t.textSub,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    margin: "0.75rem 0 0.5rem",
+  };
+  const successBox = {
+    background: t.successLight,
+    color: t.success,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
+  const errorBox = {
+    background: t.dangerLight,
+    color: t.danger,
+    padding: "0.75rem 1rem",
+    borderRadius: 8,
+    marginBottom: "0.75rem",
+    fontSize: 14,
+    cursor: "pointer",
+  };
 
   useEffect(() => {
     loadMembers();
@@ -20,7 +54,7 @@ export default function AdminBagTags() {
   async function loadMembers() {
     const { data } = await supabase
       .from("profiles")
-      .select("id, full_name, email, bag_tag_number")
+      .select("id, full_name, nickname, email, bag_tag_number")
       .order("bag_tag_number", { ascending: true, nullsFirst: false });
     setMembers(data ?? []);
   }
@@ -34,18 +68,18 @@ export default function AdminBagTags() {
       return;
     }
 
-    // Check for conflicts
     if (newTag !== null) {
       const conflict = members.find(
         (m) => m.bag_tag_number === newTag && m.id !== member.id,
       );
       if (conflict) {
-        setError(`Tag #${newTag} is already held by ${conflict.full_name}`);
+        setError(
+          `Tag #${newTag} is already held by ${conflict.nickname || conflict.full_name}`,
+        );
         return;
       }
     }
 
-    // Update profile
     const { error } = await supabase
       .from("profiles")
       .update({ bag_tag_number: newTag })
@@ -56,7 +90,6 @@ export default function AdminBagTags() {
       return;
     }
 
-    // Record in history
     if (newTag !== null) {
       await supabase.from("bag_tag_history").insert({
         tag_number: newTag,
@@ -65,7 +98,7 @@ export default function AdminBagTags() {
       });
     }
 
-    setSuccess(`Tag updated for ${member.full_name}`);
+    setSuccess(`Tag updated for ${member.nickname || member.full_name}`);
     setAssigning(null);
     setTagInput("");
     loadMembers();
@@ -94,7 +127,6 @@ export default function AdminBagTags() {
         to remove a tag.
       </p>
 
-      {/* Tagged members */}
       {tagged.length > 0 && (
         <>
           <div style={sectionHead}>Tag holders</div>
@@ -102,6 +134,7 @@ export default function AdminBagTags() {
             <MemberTagRow
               key={m.id}
               member={m}
+              t={t}
               assigning={assigning}
               tagInput={tagInput}
               setAssigning={setAssigning}
@@ -112,7 +145,6 @@ export default function AdminBagTags() {
         </>
       )}
 
-      {/* Untagged members */}
       {untagged.length > 0 && (
         <>
           <div style={sectionHead}>No tag assigned</div>
@@ -120,6 +152,7 @@ export default function AdminBagTags() {
             <MemberTagRow
               key={m.id}
               member={m}
+              t={t}
               assigning={assigning}
               tagInput={tagInput}
               setAssigning={setAssigning}
@@ -135,6 +168,7 @@ export default function AdminBagTags() {
 
 function MemberTagRow({
   member,
+  t,
   assigning,
   tagInput,
   setAssigning,
@@ -142,20 +176,8 @@ function MemberTagRow({
   assignTag,
 }) {
   const isEditing = assigning === member.id;
-  const hint = {
-    fontSize: 14,
-    color: t.textSub,
-    marginTop: 0,
-    marginBottom: "1rem",
-  };
-  const sectionHead = {
-    fontSize: 12,
-    fontWeight: 600,
-    color: t.textSub,
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    margin: "0.75rem 0 0.5rem",
-  };
+
+  // Styles here only use t passed as prop — safe
   const card = {
     background: t.card,
     borderRadius: 10,
@@ -164,31 +186,33 @@ function MemberTagRow({
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+    boxShadow: t.shadow,
   };
   const cardLeft = { display: "flex", alignItems: "center", gap: 12 };
   const tagNum = {
     fontSize: 20,
     fontWeight: 800,
-    color: "#1d6b3a",
+    color: t.accentText,
     width: 40,
     textAlign: "center",
   };
-  const name = { fontWeight: 600, fontSize: 15, color: "t.text" };
-  const email = { fontSize: 12, color: t.textSub };
+  const nameStyle = { fontWeight: 600, fontSize: 15, color: t.text };
+  const emailStyle = { fontSize: 12, color: t.textSub };
   const editRow = { display: "flex", alignItems: "center", gap: 6 };
   const tagInp = {
     width: 70,
     padding: "0.4rem 0.5rem",
     borderRadius: 6,
-    border: "1.5px solid t.border",
+    border: `1.5px solid ${t.inputBorder}`,
     fontSize: 15,
     textAlign: "center",
+    background: t.input,
+    color: t.text,
   };
   const saveBtn = {
     padding: "0.4rem 0.75rem",
-    background: "#1d6b3a",
-    color: t.card,
+    background: t.accent,
+    color: "#fff",
     border: "none",
     borderRadius: 6,
     fontWeight: 600,
@@ -197,7 +221,7 @@ function MemberTagRow({
   };
   const cancelBtn = {
     padding: "0.4rem 0.5rem",
-    background: "#f3f4f6",
+    background: t.cardAlt,
     border: "none",
     borderRadius: 6,
     fontSize: 13,
@@ -206,30 +230,12 @@ function MemberTagRow({
   };
   const editBtn = {
     padding: "0.4rem 0.875rem",
-    background: "#f0faf4",
-    color: "#1d6b3a",
-    border: "1.5px solid #1d6b3a",
+    background: t.accentLight,
+    color: t.accentText,
+    border: `1.5px solid ${t.accent}`,
     borderRadius: 6,
     fontSize: 13,
     fontWeight: 600,
-    cursor: "pointer",
-  };
-  const successBox = {
-    background: t.succesLight,
-    color: t.success,
-    padding: "0.75rem 1rem",
-    borderRadius: 8,
-    marginBottom: "0.75rem",
-    fontSize: 14,
-    cursor: "pointer",
-  };
-  const errorBox = {
-    background: t.dangerLight,
-    color: t.danger,
-    padding: "0.75rem 1rem",
-    borderRadius: 8,
-    marginBottom: "0.75rem",
-    fontSize: 14,
     cursor: "pointer",
   };
 
@@ -240,8 +246,8 @@ function MemberTagRow({
           {member.bag_tag_number ? `#${member.bag_tag_number}` : "–"}
         </div>
         <div>
-          <div style={name}>{member.full_name}</div>
-          <div style={email}>{member.email}</div>
+          <div style={nameStyle}>{member.nickname || member.full_name}</div>
+          <div style={emailStyle}>{member.email}</div>
         </div>
       </div>
 
