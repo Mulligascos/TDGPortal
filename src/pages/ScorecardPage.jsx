@@ -238,7 +238,27 @@ export default function ScorecardPage() {
 
     return { changes, allPlayers: sortedByScore, sortedTags };
   }
-
+  async function confirmTagChanges() {
+    setConfirmingTags(true);
+    for (const change of tagResolution.changes) {
+      await supabase
+        .from("profiles")
+        .update({ bag_tag_number: change.newTag })
+        .eq("id", change.playerId);
+      await supabase.from("bag_tag_history").insert({
+        tag_number: change.newTag,
+        holder_id: change.playerId,
+        round_id: roundId,
+        notes: `Tag won in round. Score: ${change.score}`,
+      });
+    }
+    await supabase
+      .from("rounds")
+      .update({ status: "complete" })
+      .eq("id", roundId);
+    setConfirmingTags(false);
+    navigate("/history");
+  }
   async function handleFinishWithTags() {
     setFinishing(true);
     await saveHole();
