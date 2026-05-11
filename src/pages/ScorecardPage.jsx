@@ -187,7 +187,89 @@ export default function ScorecardPage() {
     setPlayoffHoles((prev) => [...prev, newHole]);
     goToHole(fullOrder.length);
   }
+  async function handleFinishWithTags() {
+    setFinishing(true);
+    await saveHole();
 
+    const currentFullOrder = [...playOrder, ...playoffHoles];
+    const currentParJson = layout.par_json;
+
+    if (round.play_for_tags) {
+      const playerIds = players.map((p) => p.id);
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, full_name, nickname, bag_tag_number")
+        .in("id", playerIds);
+
+      console.log("profiles fetched:", profiles, "error:", profileError);
+
+      const taggedPlayers = profiles.filter((p) => p.bag_tag_number != null);
+      console.log("tagged players:", taggedPlayers);
+
+      if (taggedPlayers.length >= 2) {
+        const taggedTotals = taggedPlayers.map((p) => {
+          const rows = currentFullOrder
+            .map((h) => ({
+              hole_number: h.holeNumber,
+              loop: h.loop,
+              strokes:
+                savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null,
+            }))
+            .filter((s) => s.strokes != null);
+          const { total } = calcPlayerScore(rows, currentParJson);
+          return { ...p, total };
+        });
+
+        console.log("tagged totals:", taggedTotals);
+
+        const scoreValues = taggedTotals.map((p) => p.total);
+        const uniqueScores = new Set(scoreValues);
+        const hasTie = uniqueScores.size < scoreValues.length;
+
+        console.log("scores:", scoreValues, "hasTie:", hasTie);
+
+        if (hasTie) {
+          const scoreCounts = {};
+          scoreValues.forEach((s) => {
+            scoreCounts[s] = (scoreCounts[s] || 0) + 1;
+          });
+          const tiedScores = Object.entries(scoreCounts)
+            .filter(([, count]) => count > 1)
+            .map(([score]) => parseInt(score));
+          const tiedPlayers = taggedTotals.filter((p) =>
+            tiedScores.includes(p.total),
+          );
+          const tiedNames = tiedPlayers
+            .map((p) => p.nickname || p.full_name)
+            .join(" & ");
+          setFinishing(false);
+          setTagTieInfo({ tiedNames, tiedPlayers });
+          return;
+        }
+      }
+
+      const resolution = await resolveTagsAfterRound(
+        currentFullOrder,
+        currentParJson,
+      );
+      console.log("resolution:", resolution);
+
+      if (resolution && resolution.changes.length > 0) {
+        setTagResolution(resolution);
+        setFinishing(false);
+        return;
+      }
+
+      // No changes needed
+      console.log("no tag changes — finishing normally");
+    }
+
+    await supabase
+      .from("rounds")
+      .update({ status: "complete" })
+      .eq("id", roundId);
+    navigate("/history");
+  }
   // ── Bag tag resolution ──────────────────────────────────
   async function resolveTagsAfterRound(fullOrder, parJson) {
     if (!round.play_for_tags) return null;
