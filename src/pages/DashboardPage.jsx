@@ -146,6 +146,7 @@ export default function DashboardPage() {
   }, [profile]);
 
   async function startTournamentRound(tr) {
+    console.log("startTournamentRound called", tr);
     navigate("/round/new", {
       state: {
         tournamentRoundId: tr.id,
