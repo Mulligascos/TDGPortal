@@ -9,7 +9,30 @@ export default function AdminEvents() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
   const [tab, setTab] = useState("events");
-
+  /**
+   * Convert a datetime-local input value (no timezone) to UTC ISO string
+   * by treating it as NZ local time (NZST UTC+12 / NZDT UTC+13)
+   */
+  function nzLocalToUTC(localStr) {
+    if (!localStr) return null;
+    // Determine NZ offset — NZST is UTC+12, NZDT is UTC+13 (Oct-Apr)
+    // Simple approach: use the browser's Intl to get current NZ offset
+    const testDate = new Date(localStr);
+    const nzStr = testDate.toLocaleString("en-NZ", {
+      timeZone: "Pacific/Auckland",
+      hour12: false,
+    });
+    // Get the UTC offset for NZ at this date
+    const utcDate = new Date(
+      testDate.toLocaleString("en-US", { timeZone: "UTC" }),
+    );
+    const nzDate = new Date(
+      testDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+    );
+    const offsetMs = nzDate - utcDate;
+    // Apply offset in reverse to get UTC
+    return new Date(testDate.getTime() - offsetMs).toISOString();
+  }
   return (
     <Layout title="Events & tournaments">
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
@@ -127,7 +150,7 @@ function EventsTab() {
       course_id: form.course_id || null,
       layout_id: form.layout_id || null,
       format: form.format,
-      event_date: form.event_date,
+      event_date: form.event_date ? nzLocalToUTC(form.event_date) : null,
     };
     if (editing) {
       const { error } = await supabase
@@ -741,15 +764,13 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
       .delete()
       .eq("tournament_id", tid);
     if (divisions.length > 0) {
-      await supabase
-        .from("tournament_divisions")
-        .insert(
-          divisions.map((d, i) => ({
-            tournament_id: tid,
-            name: d.name,
-            display_order: i,
-          })),
-        );
+      await supabase.from("tournament_divisions").insert(
+        divisions.map((d, i) => ({
+          tournament_id: tid,
+          name: d.name,
+          display_order: i,
+        })),
+      );
     }
 
     // Save rounds
@@ -761,7 +782,9 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
           round_number: i + 1,
           course_id: r.course_id || null,
           layout_id: r.layout_id || null,
-          scheduled_date: r.scheduled_date || null,
+          scheduled_date: r.scheduled_date
+            ? nzLocalToUTC(r.scheduled_date)
+            : null,
           round_id: r.round_id || null,
         })),
       );
