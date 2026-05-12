@@ -71,7 +71,7 @@ export default function Layout({ children, title }) {
               Admin
             </Link>
           )}
-          <span style={{ fontSize: 13, opacity: 0.85 }}>
+          <span style={{ fontSize: 16, opacity: 0.85 }}>
             {profile?.nickname || profile?.full_name}
           </span>
           <button

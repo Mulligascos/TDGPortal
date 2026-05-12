@@ -5,6 +5,27 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
 import Layout from "../../components/shared/Layout";
 
+function nzLocalToUTC(localStr) {
+  if (!localStr) return null;
+  // Determine NZ offset — NZST is UTC+12, NZDT is UTC+13 (Oct-Apr)
+  // Simple approach: use the browser's Intl to get current NZ offset
+  const testDate = new Date(localStr);
+  const nzStr = testDate.toLocaleString("en-NZ", {
+    timeZone: "Pacific/Auckland",
+    hour12: false,
+  });
+  // Get the UTC offset for NZ at this date
+  const utcDate = new Date(
+    testDate.toLocaleString("en-US", { timeZone: "UTC" }),
+  );
+  const nzDate = new Date(
+    testDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+  );
+  const offsetMs = nzDate - utcDate;
+  // Apply offset in reverse to get UTC
+  return new Date(testDate.getTime() - offsetMs).toISOString();
+}
+
 export default function AdminEvents() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
@@ -13,26 +34,7 @@ export default function AdminEvents() {
    * Convert a datetime-local input value (no timezone) to UTC ISO string
    * by treating it as NZ local time (NZST UTC+12 / NZDT UTC+13)
    */
-  function nzLocalToUTC(localStr) {
-    if (!localStr) return null;
-    // Determine NZ offset — NZST is UTC+12, NZDT is UTC+13 (Oct-Apr)
-    // Simple approach: use the browser's Intl to get current NZ offset
-    const testDate = new Date(localStr);
-    const nzStr = testDate.toLocaleString("en-NZ", {
-      timeZone: "Pacific/Auckland",
-      hour12: false,
-    });
-    // Get the UTC offset for NZ at this date
-    const utcDate = new Date(
-      testDate.toLocaleString("en-US", { timeZone: "UTC" }),
-    );
-    const nzDate = new Date(
-      testDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
-    );
-    const offsetMs = nzDate - utcDate;
-    // Apply offset in reverse to get UTC
-    return new Date(testDate.getTime() - offsetMs).toISOString();
-  }
+
   return (
     <Layout title="Events & tournaments">
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
