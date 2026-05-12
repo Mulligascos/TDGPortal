@@ -5,6 +5,11 @@ import { useAuth } from "../hooks/useAuth";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { getTheme } from "../lib/theme";
 import Layout from "../components/shared/Layout";
+import {
+  calcStrokeplayStandings,
+  calcMatchplayStandings,
+  formatRelativeToParT,
+} from "../lib/tournamentScoring";
 
 function Section({ title, count, defaultOpen = true, accent, children, t }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -64,15 +69,24 @@ export default function DashboardPage() {
   const { profile } = useAuth();
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
-  const navigate = useNavigate();
+
   const [announcements, setAnnouncements] = useState([]);
   const [recentRounds, setRecentRounds] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [upcomingTournamentRounds, setUpcomingTournamentRounds] = useState([]);
+  const [activeTournaments, setActiveTournaments] = useState([]);
 
   useEffect(() => {
     const now = new Date().toISOString();
-
+    // Active tournaments (started but not ended)
+    const nowStr = new Date().toISOString().split("T")[0];
+    supabase
+      .from("tournaments")
+      .select("*")
+      .eq("status", "published")
+      .lte("start_date", nowStr)
+      .gte("end_date", nowStr)
+      .then(({ data }) => setActiveTournaments(data ?? []));
     supabase
       .from("announcements")
       .select("*")
@@ -268,7 +282,15 @@ export default function DashboardPage() {
           </Link>
         </Section>
       )}
-
+      {/* Active tournament mini leaderboards */}
+      {activeTournaments.map((tournament) => (
+        <MiniLeaderboard
+          key={tournament.id}
+          tournament={tournament}
+          t={t}
+          navigate={navigate}
+        />
+      ))}
       {/* Upcoming */}
       {upcomingCount > 0 && (
         <Section
@@ -592,4 +614,172 @@ export default function DashboardPage() {
       )}
     </Layout>
   );
+  function MiniLeaderboard({ tournament, t, navigate }) {
+    const [standings, setStandings] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      load();
+    }, [tournament.id]);
+
+    async function load() {
+      const [roundRes, playerRes] = await Promise.all([
+        supabase
+          .from("tournament_rounds")
+          .select("*, layouts(layout_name, number_of_holes, loops, par_json)")
+          .eq("tournament_id", tournament.id)
+          .order("round_number"),
+        supabase
+          .from("tournament_players")
+          .select(
+            "*, profiles(id, full_name, nickname), tournament_divisions(name)",
+          )
+          .eq("tournament_id", tournament.id),
+      ]);
+
+      const roundList = roundRes.data ?? [];
+      const playerList = playerRes.data ?? [];
+      const linkedRoundIds = roundList
+        .filter((r) => r.round_id)
+        .map((r) => r.round_id);
+
+      let scores = [];
+      if (linkedRoundIds.length > 0) {
+        const { data: scoreData } = await supabase
+          .from("scores")
+          .select("player_id, strokes, round_id, hole_number, loop")
+          .in("round_id", linkedRoundIds);
+        scores = scoreData ?? [];
+      }
+
+      const calc =
+        tournament.format === "matchplay"
+          ? calcMatchplayStandings(playerList, roundList, scores, tournament)
+          : calcStrokeplayStandings(playerList, roundList, scores, tournament);
+
+      setStandings(calc.slice(0, 5)); // top 5 only on dashboard
+      setLoading(false);
+    }
+
+    return (
+      <div
+        style={{
+          background: t.card,
+          borderRadius: 12,
+          padding: "1rem",
+          marginBottom: "0.75rem",
+          boxShadow: t.shadow,
+          border: `2px solid ${t.accent}`,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+              🏆 {tournament.name}
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: t.textSub,
+                marginTop: 2,
+                textTransform: "capitalize",
+              }}
+            >
+              {tournament.format} ·{" "}
+              {tournament.scoring_type === "best_rounds"
+                ? `Best ${tournament.best_rounds_count} rounds`
+                : "Total score"}
+            </div>
+          </div>
+          <button
+            style={{
+              padding: "4px 10px",
+              background: t.accentLight,
+              color: t.accentText,
+              border: `1px solid ${t.accent}`,
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/tournaments")}
+          >
+            Full standings →
+          </button>
+        </div>
+
+        {loading && (
+          <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>
+            Loading...
+          </p>
+        )}
+
+        {!loading && standings.length === 0 && (
+          <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>
+            No scores yet.
+          </p>
+        )}
+
+        {standings.map((p, i) => (
+          <div
+            key={p.player_id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "6px 0",
+              borderBottom: `1px solid ${t.borderCard}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: i === 0 ? t.accentText : t.textSub,
+                  width: 20,
+                }}
+              >
+                {i + 1}
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: i === 0 ? 700 : 500,
+                  color: t.text,
+                }}
+              >
+                {p.name}
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color:
+                  tournament.format === "matchplay"
+                    ? t.text
+                    : p.relativeToPar < 0
+                      ? t.success
+                      : p.relativeToPar > 0
+                        ? t.danger
+                        : t.textSub,
+              }}
+            >
+              {tournament.format === "matchplay"
+                ? `${p.points ?? 0} pts`
+                : formatRelativeToParT(p.relativeToPar)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 }

@@ -7,9 +7,9 @@ const memberNav = [
   { to: "/", label: "Home", icon: "⛳" },
   { to: "/round/new", label: "New round", icon: "📋" },
   { to: "/history", label: "History", icon: "📊" },
+  { to: "/tournaments", label: "Tournaments", icon: "🏆" },
   { to: "/bag-tags", label: "Bag tags", icon: "🏷️" },
   { to: "/news", label: "News", icon: "📣" },
-  { to: "/reports", label: "Report", icon: "🚩" },
 ];
 
 export default function Layout({ children, title }) {

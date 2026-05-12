@@ -669,6 +669,8 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
     end_date: editing?.end_date ? editing.end_date.slice(0, 10) : "",
     format: editing?.format ?? "strokeplay",
     status: editing?.status ?? "draft",
+    scoring_type: editing?.scoring_type ?? "total",
+    best_rounds_count: editing?.best_rounds_count ?? null,
   });
   const [divisions, setDivisions] = useState([]);
   const [rounds, setRounds] = useState([]);
@@ -731,6 +733,9 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
       end_date: form.end_date,
       format: form.format,
       status: form.status,
+      scoring_type: form.scoring_type,
+      best_rounds_count:
+        form.scoring_type === "best_rounds" ? form.best_rounds_count : null,
     };
 
     let tid = tournamentId;
@@ -980,7 +985,55 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
         }
         placeholder="Tournament details, rules, prizes..."
       />
+      {/* Scoring */}
+      <label style={lbl}>Scoring type</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[
+          { value: "total", label: "∑ Total strokes / points" },
+          { value: "best_rounds", label: "🏆 Best X of Y rounds" },
+        ].map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            style={{
+              flex: 1,
+              padding: "0.625rem",
+              borderRadius: 8,
+              border: `1.5px solid ${form.scoring_type === opt.value ? t.accent : t.border}`,
+              background:
+                form.scoring_type === opt.value ? t.accentLight : t.card,
+              color: form.scoring_type === opt.value ? t.accentText : t.textSub,
+              cursor: "pointer",
+              fontWeight: 500,
+              fontSize: 13,
+            }}
+            onClick={() => setForm((f) => ({ ...f, scoring_type: opt.value }))}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
+      {form.scoring_type === "best_rounds" && (
+        <>
+          <label style={lbl}>Count best how many rounds?</label>
+          <input
+            style={inp}
+            type="number"
+            min={1}
+            max={20}
+            required
+            value={form.best_rounds_count ?? ""}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                best_rounds_count: parseInt(e.target.value),
+              }))
+            }
+            placeholder="e.g. 2 (best 2 of 3 rounds count)"
+          />
+        </>
+      )}
       <label style={lbl}>Status</label>
       <div style={{ display: "flex", gap: 8 }}>
         {["draft", "published"].map((s) => (

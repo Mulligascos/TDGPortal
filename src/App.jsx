@@ -11,6 +11,7 @@ import HistoryPage from "./pages/HistoryPage";
 import BagTagsPage from "./pages/BagTagsPage";
 import NewsPage from "./pages/NewsPage";
 import ReportsPage from "./pages/ReportsPage";
+import TournamentsPage from "./pages/TournamentsPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -141,6 +142,14 @@ function AppRoutes() {
           <AdminRoute>
             <AdminEvents />
           </AdminRoute>
+        }
+      />
+      <Route
+        path="/tournaments"
+        element={
+          <ProtectedRoute>
+            <TournamentsPage />
+          </ProtectedRoute>
         }
       />
       <Route
