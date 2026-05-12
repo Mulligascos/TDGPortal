@@ -280,7 +280,15 @@ export default function DashboardPage() {
         >
           {upcomingTournamentRounds.map((tr) => {
             const d = new Date(tr.scheduled_date);
-            const isToday = new Date().toDateString() === d.toDateString();
+            const nzFormatter = new Intl.DateTimeFormat("en-NZ", {
+              timeZone: "Pacific/Auckland",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            });
+            const todayNZ = nzFormatter.format(new Date());
+            const roundDateNZ = nzFormatter.format(d);
+            const isToday = todayNZ === roundDateNZ;
             return (
               <div
                 key={tr.id}
@@ -351,16 +359,20 @@ export default function DashboardPage() {
                 </div>
                 {(() => {
                   const d = new Date(tr.scheduled_date);
-                  const isToday =
-                    new Date().toDateString() === d.toDateString();
+                  const nzFmt = new Intl.DateTimeFormat("en-NZ", {
+                    timeZone: "Pacific/Auckland",
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  });
+                  const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
                   const hasSetup = tr.course_id && tr.layout_id;
                   const disabled = !isToday || !hasSetup;
                   let label = "🥏 Start tournament round";
                   let reason = "";
                   if (!hasSetup) reason = "No course or layout assigned yet";
                   else if (!isToday)
-                    reason = `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" })}`;
-
+                    reason = `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Auckland" })}`;
                   return (
                     <div style={{ marginTop: 10 }}>
                       <button
@@ -402,7 +414,13 @@ export default function DashboardPage() {
 
           {upcomingEvents.map((ev) => {
             const d = new Date(ev.event_date);
-            const isToday = new Date().toDateString() === d.toDateString();
+            const nzFmt = new Intl.DateTimeFormat("en-NZ", {
+              timeZone: "Pacific/Auckland",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            });
+            const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
             return (
               <div
                 key={ev.id}
@@ -466,11 +484,13 @@ export default function DashboardPage() {
                     weekday: "short",
                     day: "numeric",
                     month: "short",
+                    timeZone: "Pacific/Auckland",
                   })}
                   {" · "}
                   {d.toLocaleTimeString("en-NZ", {
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: "Pacific/Auckland",
                   })}
                 </div>
                 {ev.description && (
