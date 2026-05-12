@@ -29,7 +29,7 @@ export function AppDataProvider({ children }) {
         supabase
           .from("profiles")
           .select(
-            "id, full_name, nickname, bag_tag_number, role, handicap, email",
+            "id, full_name, nickname, bag_tag_number, role, handicap, email, default_division",
           )
           .order("full_name"),
         supabase

@@ -209,12 +209,55 @@ export default function NewRoundPage() {
         .insert(playerRows);
       if (playersErr) throw playersErr;
 
-      // Link to tournament round if started from tournament
+      // Link to tournament round and register players
       if (tournamentState?.tournamentRoundId) {
+        // Link the round
         await supabase
           .from("tournament_rounds")
           .update({ round_id: round.id })
           .eq("id", tournamentState.tournamentRoundId);
+
+        // Get or create tournament divisions
+        const { data: existingDivisions } = await supabase
+          .from("tournament_divisions")
+          .select("*")
+          .eq("tournament_id", tournamentState.tournamentId);
+
+        // For each player, find or create their division and register them
+        for (const playerId of selectedPlayers) {
+          const member = members.find((m) => m.id === playerId);
+          const divisionName =
+            playerDivisions[playerId] || member?.default_division || "Open";
+
+          // Find existing division or create it
+          let division = existingDivisions?.find(
+            (d) => d.name === divisionName,
+          );
+          if (!division) {
+            const { data: newDiv } = await supabase
+              .from("tournament_divisions")
+              .insert({
+                tournament_id: tournamentState.tournamentId,
+                name: divisionName,
+                display_order: 0,
+              })
+              .select()
+              .single();
+            division = newDiv;
+          }
+
+          if (!division) continue;
+
+          // Register player in tournament (upsert in case they already exist)
+          await supabase.from("tournament_players").upsert(
+            {
+              tournament_id: tournamentState.tournamentId,
+              player_id: playerId,
+              division_id: division.id,
+            },
+            { onConflict: "tournament_id,player_id" },
+          );
+        }
       }
 
       // Clear the saved setup — round has started
