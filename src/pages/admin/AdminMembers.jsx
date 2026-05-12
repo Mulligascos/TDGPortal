@@ -15,6 +15,7 @@ export default function AdminMembers() {
     email: "",
     password: "",
     role: "member",
+    default_division: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -57,6 +58,7 @@ export default function AdminMembers() {
       email: member.email,
       password: "",
       role: member.role,
+      default_division: member.default_division ?? "",
     });
     setShowForm(true);
     setError(null);
@@ -114,6 +116,7 @@ export default function AdminMembers() {
         .update({
           nickname: form.nickname || null,
           role: form.role,
+          default_division: form.default_division || null,
         })
         .eq("email", form.email);
     }, 1500);
@@ -138,6 +141,7 @@ export default function AdminMembers() {
         full_name: form.full_name,
         nickname: form.nickname || null,
         role: form.role,
+        default_division: form.default_division || null,
       })
       .eq("id", editing.id);
 
@@ -482,6 +486,18 @@ export default function AdminMembers() {
               {m.bag_tag_number && (
                 <span style={tagStyle}>🏷️ #{m.bag_tag_number}</span>
               )}
+              <label style={lbl}>
+                Default division{" "}
+                <span style={editNote}>(used as default for tournaments)</span>
+              </label>
+              <input
+                style={inp}
+                value={form.default_division}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, default_division: e.target.value }))
+                }
+                placeholder="e.g. Open, Women's, Junior (optional)"
+              />
               <span
                 style={{
                   ...roleBadge,

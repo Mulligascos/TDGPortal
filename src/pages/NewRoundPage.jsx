@@ -18,7 +18,7 @@ export default function NewRoundPage() {
   const [courses, setCourses] = useState([]);
   const [layouts, setLayouts] = useState([]);
   const [members, setMembers] = useState([]);
-
+  const [playerDivisions, setPlayerDivisions] = useState({}); // { playerId: divisionName }
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLayout, setSelectedLayout] = useState(null);
   const [startingHole, setStartingHole] = useState(1);
@@ -461,7 +461,79 @@ export default function NewRoundPage() {
                 </div>
               </div>
             )}
-
+            {/* Division confirmation for tournament rounds */}
+            {tournamentState?.prefilledFromTournament &&
+              selectedPlayers.length > 0 && (
+                <div
+                  style={{
+                    background: "#f0faf4",
+                    borderRadius: 10,
+                    padding: "0.875rem",
+                    marginBottom: "0.75rem",
+                    border: "1.5px solid #bbf7d0",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "#1a2e1a",
+                      marginBottom: 8,
+                    }}
+                  >
+                    🏆 Confirm tournament divisions
+                  </div>
+                  <div
+                    style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}
+                  >
+                    Divisions default from player profiles. Change if needed.
+                  </div>
+                  {members
+                    .filter((m) => selectedPlayers.includes(m.id))
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            flex: 1,
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: "#1a2e1a",
+                          }}
+                        >
+                          {m.nickname || m.full_name}
+                        </span>
+                        <input
+                          style={{
+                            width: 140,
+                            padding: "0.4rem 0.625rem",
+                            borderRadius: 6,
+                            border: "1.5px solid #d1d5db",
+                            fontSize: 13,
+                            background: "#fff",
+                          }}
+                          value={
+                            playerDivisions[m.id] ?? m.default_division ?? ""
+                          }
+                          onChange={(e) =>
+                            setPlayerDivisions((prev) => ({
+                              ...prev,
+                              [m.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g. Open"
+                        />
+                      </div>
+                    ))}
+                </div>
+              )}
             {format === "matchplay" && selectedPlayers.length !== 2 && (
               <p
                 style={{ color: "#dc2626", fontSize: 13, margin: "0 0 0.5rem" }}
