@@ -152,7 +152,7 @@ function EventsTab() {
       course_id: form.course_id || null,
       layout_id: form.layout_id || null,
       format: form.format,
-      event_date: form.event_date ? nzLocalToUTC(form.event_date) : null,
+      event_date: form.event_date || null,
     };
     if (editing) {
       const { error } = await supabase
@@ -789,9 +789,7 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
           round_number: i + 1,
           course_id: r.course_id || null,
           layout_id: r.layout_id || null,
-          scheduled_date: r.scheduled_date
-            ? nzLocalToUTC(r.scheduled_date)
-            : null,
+          scheduled_date: r.scheduled_date || null,
           round_id: r.round_id || null,
         })),
       );
