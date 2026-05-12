@@ -349,30 +349,53 @@ export default function DashboardPage() {
                     minute: "2-digit",
                   })}
                 </div>
-                <button
-                  style={{
-                    width: "100%",
-                    marginTop: 10,
-                    padding: "0.625rem",
-                    background:
-                      tr.course_id && tr.layout_id ? t.accent : t.textSub,
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    cursor: "pointer",
-                  }}
-                  onClick={() =>
-                    tr.course_id && tr.layout_id
-                      ? startTournamentRound(tr)
-                      : alert(
-                          "No course or layout assigned. Ask your admin to update this tournament round.",
-                        )
-                  }
-                >
-                  🥏 Start tournament round
-                </button>
+                {(() => {
+                  const d = new Date(tr.scheduled_date);
+                  const isToday =
+                    new Date().toDateString() === d.toDateString();
+                  const hasSetup = tr.course_id && tr.layout_id;
+                  const disabled = !isToday || !hasSetup;
+                  let label = "🥏 Start tournament round";
+                  let reason = "";
+                  if (!hasSetup) reason = "No course or layout assigned yet";
+                  else if (!isToday)
+                    reason = `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" })}`;
+
+                  return (
+                    <div style={{ marginTop: 10 }}>
+                      <button
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem",
+                          background: disabled ? t.textMuted : t.accent,
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          fontWeight: 700,
+                          fontSize: 14,
+                          cursor: disabled ? "not-allowed" : "pointer",
+                          opacity: disabled ? 0.6 : 1,
+                        }}
+                        disabled={disabled}
+                        onClick={() => startTournamentRound(tr)}
+                      >
+                        {label}
+                      </button>
+                      {reason && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: t.textMuted,
+                            textAlign: "center",
+                            marginTop: 4,
+                          }}
+                        >
+                          {reason}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

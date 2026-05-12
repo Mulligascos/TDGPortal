@@ -281,7 +281,11 @@ export default function NewRoundPage() {
               ))}
             </div>
             <button
-              style={styles.nextBtn}
+              style={{
+                ...styles.nextBtn,
+                opacity: !selectedCourse ? 0.4 : 1,
+                cursor: !selectedCourse ? "not-allowed" : "pointer",
+              }}
               disabled={!selectedCourse}
               onClick={() => setStep(1)}
             >
@@ -361,7 +365,11 @@ export default function NewRoundPage() {
                 ← Back
               </button>
               <button
-                style={styles.nextBtn}
+                style={{
+                  ...styles.nextBtn,
+                  opacity: !selectedLayout ? 0.4 : 1,
+                  cursor: !selectedLayout ? "not-allowed" : "pointer",
+                }}
                 disabled={!selectedLayout}
                 onClick={() => setStep(2)}
               >
@@ -466,17 +474,25 @@ export default function NewRoundPage() {
               <button style={styles.backBtn} onClick={() => setStep(1)}>
                 ← Back
               </button>
-              <button
-                style={styles.nextBtn}
-                disabled={
+              {(() => {
+                const disabled =
                   format === "matchplay"
                     ? selectedPlayers.length !== 2
-                    : selectedPlayers.length === 0
-                }
-                onClick={() => setStep(3)}
-              >
-                Next →
-              </button>
+                    : selectedPlayers.length === 0;
+                return (
+                  <button
+                    style={{
+                      ...styles.nextBtn,
+                      opacity: disabled ? 0.4 : 1,
+                      cursor: disabled ? "not-allowed" : "pointer",
+                    }}
+                    disabled={disabled}
+                    onClick={() => setStep(3)}
+                  >
+                    Next →
+                  </button>
+                );
+              })()}
             </div>
           </div>
         )}
