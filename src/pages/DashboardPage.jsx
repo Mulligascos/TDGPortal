@@ -69,7 +69,7 @@ export default function DashboardPage() {
   const { profile } = useAuth();
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
-
+  const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState([]);
   const [recentRounds, setRecentRounds] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
