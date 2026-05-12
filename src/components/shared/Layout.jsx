@@ -37,7 +37,9 @@ export default function Layout({ children, title }) {
           justifyContent: "space-between",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: 16 }}>🥏 Disc Golf Club</span>
+        <span style={{ fontWeight: 700, fontSize: 16 }}>
+          Timaru Disc Golf Portal
+        </span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button
             onClick={toggleDark}
