@@ -7,25 +7,16 @@ import Layout from "../../components/shared/Layout";
 
 function nzLocalToUTC(localStr) {
   if (!localStr) return null;
-  // Determine NZ offset — NZST is UTC+12, NZDT is UTC+13 (Oct-Apr)
-  // Simple approach: use the browser's Intl to get current NZ offset
-  const testDate = new Date(localStr);
-  const nzStr = testDate.toLocaleString("en-NZ", {
-    timeZone: "Pacific/Auckland",
-    hour12: false,
-  });
-  // Get the UTC offset for NZ at this date
+  const localDate = new Date(localStr);
   const utcDate = new Date(
-    testDate.toLocaleString("en-US", { timeZone: "UTC" }),
+    localDate.toLocaleString("en-US", { timeZone: "UTC" }),
   );
   const nzDate = new Date(
-    testDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+    localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
   );
   const offsetMs = nzDate - utcDate;
-  // Apply offset in reverse to get UTC
-  return new Date(testDate.getTime() - offsetMs).toISOString();
+  return new Date(localDate.getTime() - offsetMs).toISOString();
 }
-
 export default function AdminEvents() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
@@ -152,7 +143,7 @@ function EventsTab() {
       course_id: form.course_id || null,
       layout_id: form.layout_id || null,
       format: form.format,
-      event_date: form.event_date || null,
+      event_date: form.event_date ? nzLocalToUTC(form.event_date) : null,
     };
     if (editing) {
       const { error } = await supabase
