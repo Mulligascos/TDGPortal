@@ -25,7 +25,26 @@ export default function AdminEvents() {
    * Convert a datetime-local input value (no timezone) to UTC ISO string
    * by treating it as NZ local time (NZST UTC+12 / NZDT UTC+13)
    */
-
+  /**
+   * Convert a UTC ISO string back to NZ local datetime-local input format
+   * e.g. "2026-05-17T07:00:00+00:00" → "2026-05-17T19:00"
+   */
+  function utcToNZLocal(utcStr) {
+    if (!utcStr) return "";
+    const d = new Date(utcStr);
+    // Format in NZ timezone
+    const nzStr = d.toLocaleString("en-CA", {
+      timeZone: "Pacific/Auckland",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    // en-CA gives us YYYY-MM-DD, HH:MM format — convert to datetime-local format
+    return nzStr.replace(", ", "T").replace(",", "T");
+  }
   return (
     <Layout title="Events & tournaments">
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
@@ -127,7 +146,7 @@ function EventsTab() {
       course_id: ev.course_id ?? "",
       layout_id: ev.layout_id ?? "",
       format: ev.format ?? "strokeplay",
-      event_date: ev.event_date ? ev.event_date.slice(0, 16) : "",
+      event_date: ev.event_date ? utcToNZLocal(ev.event_date) : "",
     });
     setShowForm(true);
     setError(null);
@@ -696,7 +715,7 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
             (data ?? []).map((r) => ({
               ...r,
               scheduled_date: r.scheduled_date
-                ? r.scheduled_date.slice(0, 16)
+                ? utcToNZLocal(r.scheduled_date)
                 : "",
             })),
           ),
@@ -780,7 +799,9 @@ function TournamentForm({ editing, t, userId, onSaved, onCancel }) {
           round_number: i + 1,
           course_id: r.course_id || null,
           layout_id: r.layout_id || null,
-          scheduled_date: r.scheduled_date || null,
+          scheduled_date: r.scheduled_date
+            ? nzLocalToUTC(r.scheduled_date)
+            : null,
           round_id: r.round_id || null,
         })),
       );
