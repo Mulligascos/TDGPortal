@@ -507,6 +507,7 @@ export default function DashboardPage() {
                     weekday: "short",
                     day: "numeric",
                     month: "short",
+                    year: "numeric",
                     timeZone: "Pacific/Auckland",
                   })}
                   {" · "}
