@@ -546,8 +546,8 @@ function MiniCalendar({ items, t }) {
                   {hasTournament && (
                     <div
                       style={{
-                        width: 4,
-                        height: 4,
+                        width: 14,
+                        height: 14,
                         borderRadius: "50%",
                         background: isSelected ? "#fff" : t.accentText,
                       }}
@@ -556,8 +556,8 @@ function MiniCalendar({ items, t }) {
                   {hasEvent && (
                     <div
                       style={{
-                        width: 4,
-                        height: 4,
+                        width: 14,
+                        height: 14,
                         borderRadius: "50%",
                         background: isSelected ? "#fff" : t.warn,
                       }}
