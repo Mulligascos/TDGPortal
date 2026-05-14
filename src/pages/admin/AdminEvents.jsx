@@ -5,47 +5,48 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
 import Layout from "../../components/shared/Layout";
 
+/**
+ * Convert a datetime-local input value (no timezone) to UTC ISO string
+ * by treating it as NZ local time (NZST UTC+12 / NZDT UTC+13)
+ */
+/**
+ * Convert a UTC ISO string back to NZ local datetime-local input format
+ * e.g. "2026-05-17T07:00:00+00:00" → "2026-05-17T19:00"
+ */
+function nzLocalToUTC(localStr) {
+  if (!localStr) return null;
+  const localDate = new Date(localStr);
+  const utcDate = new Date(
+    localDate.toLocaleString("en-US", { timeZone: "UTC" }),
+  );
+  const nzDate = new Date(
+    localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+  );
+  const offsetMs = nzDate - utcDate;
+  return new Date(localDate.getTime() - offsetMs).toISOString();
+}
+
+function utcToNZLocal(utcStr) {
+  if (!utcStr) return "";
+  const d = new Date(utcStr);
+  // Format in NZ timezone
+  const nzStr = d.toLocaleString("en-CA", {
+    timeZone: "Pacific/Auckland",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  // en-CA gives us YYYY-MM-DD, HH:MM format — convert to datetime-local format
+  return nzStr.replace(", ", "T").replace(",", "T");
+}
+
 export default function AdminEvents() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
   const [tab, setTab] = useState("events");
-  /**
-   * Convert a datetime-local input value (no timezone) to UTC ISO string
-   * by treating it as NZ local time (NZST UTC+12 / NZDT UTC+13)
-   */
-  /**
-   * Convert a UTC ISO string back to NZ local datetime-local input format
-   * e.g. "2026-05-17T07:00:00+00:00" → "2026-05-17T19:00"
-   */
-  function nzLocalToUTC(localStr) {
-    if (!localStr) return null;
-    const localDate = new Date(localStr);
-    const utcDate = new Date(
-      localDate.toLocaleString("en-US", { timeZone: "UTC" }),
-    );
-    const nzDate = new Date(
-      localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
-    );
-    const offsetMs = nzDate - utcDate;
-    return new Date(localDate.getTime() - offsetMs).toISOString();
-  }
-
-  function utcToNZLocal(utcStr) {
-    if (!utcStr) return "";
-    const d = new Date(utcStr);
-    // Format in NZ timezone
-    const nzStr = d.toLocaleString("en-CA", {
-      timeZone: "Pacific/Auckland",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    // en-CA gives us YYYY-MM-DD, HH:MM format — convert to datetime-local format
-    return nzStr.replace(", ", "T").replace(",", "T");
-  }
   return (
     <Layout title="Events & tournaments">
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
