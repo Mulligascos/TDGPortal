@@ -95,6 +95,237 @@ export default function DashboardPage() {
   const [upcomingTournamentRounds, setUpcomingTournamentRounds] = useState([]);
   const [activeTournaments, setActiveTournaments] = useState([]);
 
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  async function loadStats(userId) {
+    setStatsLoading(true);
+
+    // Get all completed rounds this player was in
+    const { data: roundPlayers } = await supabase
+      .from("round_players")
+      .select("round_id")
+      .eq("player_id", userId);
+
+    if (!roundPlayers || roundPlayers.length === 0) {
+      setStats({ noData: true });
+      setStatsLoading(false);
+      return;
+    }
+
+    const roundIds = roundPlayers.map((r) => r.round_id);
+
+    // Get completed rounds with layout info
+    const { data: rounds } = await supabase
+      .from("rounds")
+      .select(
+        "id, played_at, format, layouts(number_of_holes, loops, par_json), courses(name)",
+      )
+      .in("id", roundIds)
+      .eq("status", "complete")
+      .order("played_at", { ascending: false });
+
+    if (!rounds || rounds.length === 0) {
+      setStats({ noData: true });
+      setStatsLoading(false);
+      return;
+    }
+
+    // Get all scores for these rounds
+    const { data: scores } = await supabase
+      .from("scores")
+      .select("round_id, hole_number, loop, strokes, player_id")
+      .in(
+        "round_id",
+        rounds.map((r) => r.id),
+      )
+      .eq("player_id", userId);
+
+    // Get all round players to find playing partners
+    const { data: allRoundPlayers } = await supabase
+      .from("round_players")
+      .select("round_id, player_id, profiles(full_name, nickname)")
+      .in(
+        "round_id",
+        rounds.map((r) => r.id),
+      )
+      .neq("player_id", userId);
+
+    // ── Calculate stats ────────────────────────────────────
+
+    // Group scores by round
+    const scoresByRound = {};
+    for (const s of scores ?? []) {
+      if (!scoresByRound[s.round_id]) scoresByRound[s.round_id] = [];
+      scoresByRound[s.round_id].push(s);
+    }
+
+    // Per-round totals
+    const roundStats = rounds
+      .filter((r) => r.layouts?.par_json)
+      .map((r) => {
+        const roundScores = scoresByRound[r.id] ?? [];
+        const parJson = r.layouts.par_json;
+        const loops = r.layouts.loops ?? 1;
+        const totalPar = parJson.reduce((s, p) => s + p, 0) * loops;
+        const totalStrokes = roundScores.reduce((s, sc) => s + sc.strokes, 0);
+        const holesPlayed = roundScores.length;
+        const expectedHoles = parJson.length * loops;
+        const relativeToPar =
+          holesPlayed === expectedHoles ? totalStrokes - totalPar : null;
+
+        // Count scoring types
+        let eagles = 0,
+          birdies = 0,
+          pars = 0,
+          bogeys = 0,
+          doublePlus = 0,
+          aces = 0;
+        for (const sc of roundScores) {
+          const par = parJson[(sc.hole_number - 1) % parJson.length];
+          const diff = sc.strokes - par;
+          if (sc.strokes === 1) aces++;
+          if (diff <= -2) eagles++;
+          else if (diff === -1) birdies++;
+          else if (diff === 0) pars++;
+          else if (diff === 1) bogeys++;
+          else doublePlus++;
+        }
+
+        return {
+          roundId: r.id,
+          playedAt: new Date(r.played_at),
+          courseName: r.courses?.name,
+          totalStrokes,
+          totalPar,
+          relativeToPar,
+          holesPlayed,
+          expectedHoles,
+          eagles,
+          birdies,
+          pars,
+          bogeys,
+          doublePlus,
+          aces,
+          complete: holesPlayed === expectedHoles,
+        };
+      })
+      .filter((r) => r.complete);
+
+    const totalRounds = roundStats.length;
+    if (totalRounds === 0) {
+      setStats({ noData: true });
+      setStatsLoading(false);
+      return;
+    }
+
+    // Best round (lowest relative to par)
+    const validRounds = roundStats.filter((r) => r.relativeToPar != null);
+    const bestRound =
+      validRounds.length > 0
+        ? validRounds.reduce((best, r) =>
+            r.relativeToPar < best.relativeToPar ? r : best,
+          )
+        : null;
+
+    // Average relative to par
+    const avgRelToPar =
+      validRounds.length > 0
+        ? validRounds.reduce((s, r) => s + r.relativeToPar, 0) /
+          validRounds.length
+        : null;
+
+    // Trend — last 5 vs previous 5
+    const last5 = validRounds.slice(0, 5);
+    const prev5 = validRounds.slice(5, 10);
+    const last5Avg =
+      last5.length > 0
+        ? last5.reduce((s, r) => s + r.relativeToPar, 0) / last5.length
+        : null;
+    const prev5Avg =
+      prev5.length > 0
+        ? prev5.reduce((s, r) => s + r.relativeToPar, 0) / prev5.length
+        : null;
+    const trend =
+      last5Avg != null && prev5Avg != null
+        ? last5Avg < prev5Avg
+          ? "improving"
+          : last5Avg > prev5Avg
+            ? "declining"
+            : "steady"
+        : null;
+
+    // Streaks — consecutive rounds under par
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let tempStreak = 0;
+    for (const r of validRounds) {
+      if (r.relativeToPar < 0) {
+        tempStreak++;
+        bestStreak = Math.max(bestStreak, tempStreak);
+        if (currentStreak === 0 && tempStreak > 0) currentStreak = tempStreak;
+      } else {
+        if (currentStreak === 0) currentStreak = 0;
+        tempStreak = 0;
+      }
+    }
+    // Reset currentStreak if first round wasn't under par
+    if (validRounds.length > 0 && validRounds[0].relativeToPar >= 0)
+      currentStreak = 0;
+
+    // Achievements
+    const totalEagles = roundStats.reduce((s, r) => s + r.eagles, 0);
+    const totalBirdies = roundStats.reduce((s, r) => s + r.birdies, 0);
+    const totalAces = roundStats.reduce((s, r) => s + r.aces, 0);
+    const bestBirdieRound = roundStats.reduce(
+      (best, r) => (r.birdies > best.birdies ? r : best),
+      roundStats[0],
+    );
+
+    // Home course (most played)
+    const courseCounts = {};
+    for (const r of roundStats) {
+      if (r.courseName)
+        courseCounts[r.courseName] = (courseCounts[r.courseName] ?? 0) + 1;
+    }
+    const homeCourse = Object.entries(courseCounts).sort(
+      (a, b) => b[1] - a[1],
+    )[0];
+
+    // Most played with
+    const partnerCounts = {};
+    for (const rp of allRoundPlayers ?? []) {
+      const name = rp.profiles?.nickname || rp.profiles?.full_name;
+      if (name) partnerCounts[name] = (partnerCounts[name] ?? 0) + 1;
+    }
+    const topPartner = Object.entries(partnerCounts).sort(
+      (a, b) => b[1] - a[1],
+    )[0];
+
+    // Last 5 scores for sparkline
+    const last5Scores = validRounds
+      .slice(0, 5)
+      .reverse()
+      .map((r) => r.relativeToPar);
+
+    setStats({
+      totalRounds,
+      bestRound,
+      avgRelToPar,
+      trend,
+      currentStreak,
+      bestStreak,
+      totalEagles,
+      totalBirdies,
+      totalAces,
+      bestBirdieRound,
+      homeCourse,
+      topPartner,
+      last5Scores,
+      noData: false,
+    });
+    setStatsLoading(false);
+  }
   useEffect(() => {
     const now = new Date().toISOString();
     // Active tournaments (started but not ended)
@@ -669,6 +900,20 @@ export default function DashboardPage() {
           </Link>
         </Section>
       )}
+      {/* My stats */}
+      <Section title="My stats" defaultOpen={false} t={t}>
+        {statsLoading && (
+          <p style={{ color: t.textSub, fontSize: 14 }}>Calculating...</p>
+        )}
+        {stats?.noData && (
+          <p style={{ color: t.textSub, fontSize: 14 }}>
+            Complete some rounds to see your stats.
+          </p>
+        )}
+        {stats && !stats.noData && !statsLoading && (
+          <StatsPanel stats={stats} t={t} />
+        )}
+      </Section>
     </Layout>
   );
   function MiniCalendar({ items, t }) {
@@ -1000,7 +1245,306 @@ export default function DashboardPage() {
       </div>
     );
   }
+  function StatsPanel({ stats, t }) {
+    const trendIcon =
+      stats.trend === "improving"
+        ? "📈"
+        : stats.trend === "declining"
+          ? "📉"
+          : "➡️";
+    const trendLabel =
+      stats.trend === "improving"
+        ? "Improving"
+        : stats.trend === "declining"
+          ? "Declining"
+          : "Steady";
+    const trendColor =
+      stats.trend === "improving"
+        ? t.success
+        : stats.trend === "declining"
+          ? t.danger
+          : t.textSub;
 
+    function relFormat(n) {
+      if (n == null) return "—";
+      if (n === 0) return "E";
+      return n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1);
+    }
+
+    // Sparkline for last 5 rounds
+    function Sparkline({ scores }) {
+      if (!scores || scores.length < 2) return null;
+      const min = Math.min(...scores) - 1;
+      const max = Math.max(...scores) + 1;
+      const range = max - min || 1;
+      const w = 80;
+      const h = 30;
+      const points = scores
+        .map((s, i) => {
+          const x = (i / (scores.length - 1)) * w;
+          const y = h - ((s - min) / range) * h;
+          return `${x},${y}`;
+        })
+        .join(" ");
+
+      return (
+        <svg width={w} height={h} style={{ overflow: "visible" }}>
+          <polyline
+            points={points}
+            fill="none"
+            stroke={t.accentText}
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {scores.map((s, i) => {
+            const x = (i / (scores.length - 1)) * w;
+            const y = h - ((s - min) / range) * h;
+            return (
+              <circle
+                key={i}
+                cx={x}
+                cy={y}
+                r="3"
+                fill={s < 0 ? t.success : s > 0 ? t.danger : t.textSub}
+              />
+            );
+          })}
+        </svg>
+      );
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Top row — key numbers */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: 8,
+          }}
+        >
+          <StatTile label="Rounds" value={stats.totalRounds} t={t} />
+          <StatTile
+            label="Best round"
+            value={
+              stats.bestRound ? relFormat(stats.bestRound.relativeToPar) : "—"
+            }
+            sub={stats.bestRound?.courseName}
+            color={stats.bestRound?.relativeToPar < 0 ? t.success : t.text}
+            t={t}
+          />
+          <StatTile
+            label="Average"
+            value={relFormat(stats.avgRelToPar)}
+            color={
+              stats.avgRelToPar < 0
+                ? t.success
+                : stats.avgRelToPar > 0
+                  ? t.danger
+                  : t.textSub
+            }
+            t={t}
+          />
+        </div>
+
+        {/* Trend + sparkline */}
+        {stats.last5Scores.length >= 2 && (
+          <div
+            style={{
+              background: t.card,
+              borderRadius: 10,
+              padding: "0.875rem 1rem",
+              boxShadow: t.shadow,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>
+                Last 5 rounds
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 16 }}>{trendIcon}</span>
+                <span
+                  style={{ fontSize: 14, fontWeight: 700, color: trendColor }}
+                >
+                  {trendLabel}
+                </span>
+              </div>
+            </div>
+            <Sparkline scores={stats.last5Scores} />
+          </div>
+        )}
+
+        {/* Streaks */}
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+        >
+          <StatTile
+            label="Under par streak"
+            value={
+              stats.currentStreak === 0
+                ? "None"
+                : `${stats.currentStreak} rounds`
+            }
+            icon="🔥"
+            color={stats.currentStreak > 0 ? t.success : t.textSub}
+            t={t}
+          />
+          <StatTile
+            label="Best streak"
+            value={
+              stats.bestStreak === 0 ? "None" : `${stats.bestStreak} rounds`
+            }
+            icon="⭐"
+            t={t}
+          />
+        </div>
+
+        {/* Achievements */}
+        <div
+          style={{
+            background: t.card,
+            borderRadius: 10,
+            padding: "0.875rem 1rem",
+            boxShadow: t.shadow,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: t.textSub,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              marginBottom: 10,
+            }}
+          >
+            Achievements
+          </div>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            <AchievementRow
+              icon="🦅"
+              label="Eagles"
+              value={stats.totalEagles}
+              t={t}
+            />
+            <AchievementRow
+              icon="🐦"
+              label="Birdies"
+              value={stats.totalBirdies}
+              t={t}
+            />
+            <AchievementRow
+              icon="🎯"
+              label="Aces"
+              value={stats.totalAces}
+              highlight={stats.totalAces > 0}
+              t={t}
+            />
+            <AchievementRow
+              icon="🐦‍⬛"
+              label="Best birdie round"
+              value={stats.bestBirdieRound?.birdies ?? 0}
+              t={t}
+            />
+          </div>
+        </div>
+
+        {/* Social */}
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+        >
+          {stats.homeCourse && (
+            <StatTile
+              label="Home course"
+              value={stats.homeCourse[0]}
+              sub={`${stats.homeCourse[1]} rounds`}
+              icon="⛳"
+              t={t}
+            />
+          )}
+          {stats.topPartner && (
+            <StatTile
+              label="Top partner"
+              value={stats.topPartner[0]}
+              sub={`${stats.topPartner[1]} rounds together`}
+              icon="🤝"
+              t={t}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function StatTile({ label, value, sub, icon, color, t }) {
+    return (
+      <div
+        style={{
+          background: t.card,
+          borderRadius: 10,
+          padding: "0.875rem 0.75rem",
+          boxShadow: t.shadow,
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        <div style={{ fontSize: 11, color: t.textSub, fontWeight: 500 }}>
+          {icon ? `${icon} ` : ""}
+          {label}
+        </div>
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 800,
+            color: color ?? t.text,
+            lineHeight: 1.1,
+          }}
+        >
+          {value}
+        </div>
+        {sub && (
+          <div
+            style={{
+              fontSize: 11,
+              color: t.textMuted,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {sub}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function AchievementRow({ icon, label, value, highlight, t }) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 18 }}>{icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, color: t.textSub }}>{label}</div>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: highlight ? t.success : t.text,
+            }}
+          >
+            {value}
+          </div>
+        </div>
+      </div>
+    );
+  }
   function MiniLeaderboard({ tournament, t, navigate }) {
     const [standings, setStandings] = useState([]);
     const [loading, setLoading] = useState(true);
