@@ -15,15 +15,16 @@ import Layout from "../../components/shared/Layout";
  */
 function nzLocalToUTC(localStr) {
   if (!localStr) return null;
-  const localDate = new Date(localStr);
-  const utcDate = new Date(
-    localDate.toLocaleString("en-US", { timeZone: "UTC" }),
-  );
-  const nzDate = new Date(
-    localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
-  );
-  const offsetMs = nzDate - utcDate;
-  return new Date(localDate.getTime() - offsetMs).toISOString();
+  // Treat the datetime-local string as NZ local time
+  // by appending a fake UTC marker and adjusting
+  // Get the NZ offset at this approximate time
+  const approxDate = new Date(localStr + "Z"); // treat as UTC temporarily
+  const nzOffsetMs =
+    new Date(
+      approxDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+    ) - new Date(approxDate.toLocaleString("en-US", { timeZone: "UTC" }));
+  // Subtract the offset to convert NZ local → UTC
+  return new Date(approxDate.getTime() - nzOffsetMs).toISOString();
 }
 
 function utcToNZLocal(utcStr) {
