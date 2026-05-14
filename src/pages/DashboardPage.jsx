@@ -163,6 +163,19 @@ export default function DashboardPage() {
   }
 
   const upcomingCount = upcomingEvents.length + upcomingTournamentRounds.length;
+  // Merge and sort all upcoming items by date
+  const allUpcoming = [
+    ...upcomingEvents.map((e) => ({
+      ...e,
+      _type: "event",
+      _date: new Date(e.event_date),
+    })),
+    ...upcomingTournamentRounds.map((t) => ({
+      ...t,
+      _type: "tournament",
+      _date: new Date(t.scheduled_date),
+    })),
+  ].sort((a, b) => a._date - b._date);
 
   return (
     <Layout
@@ -284,14 +297,7 @@ export default function DashboardPage() {
         </Section>
       )}
       {/* Active tournament mini leaderboards */}
-      {activeTournaments.map((tournament) => (
-        <MiniLeaderboard
-          key={tournament.id}
-          tournament={tournament}
-          t={t}
-          navigate={navigate}
-        />
-      ))}
+
       {/* Upcoming */}
       {upcomingCount > 0 && (
         <Section
@@ -301,142 +307,8 @@ export default function DashboardPage() {
           defaultOpen={false}
           t={t}
         >
-          {upcomingTournamentRounds.map((tr) => {
-            const d = new Date(tr.scheduled_date);
-            const nzFormatter = new Intl.DateTimeFormat("en-NZ", {
-              timeZone: "Pacific/Auckland",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            });
-            const todayNZ = nzFormatter.format(new Date());
-            const roundDateNZ = nzFormatter.format(d);
-            const isToday = todayNZ === roundDateNZ;
-            return (
-              <div
-                key={tr.id}
-                style={{
-                  background: t.card,
-                  borderRadius: 10,
-                  padding: "0.875rem 1rem",
-                  marginBottom: 8,
-                  boxShadow: t.shadow,
-                  border: isToday
-                    ? `2px solid ${t.accent}`
-                    : `1px solid ${t.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    marginBottom: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: t.accentLight,
-                      color: t.accentText,
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    🏆 Tournament
-                  </span>
-                  {isToday && (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: t.successLight,
-                        color: t.success,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      Today
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-                  {tr.tournaments?.name}
-                </div>
-                <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
-                  Round {tr.round_number} · {tr.courses?.name ?? "TBC"}
-                  {tr.layouts ? ` · ${tr.layouts.layout_name}` : ""}
-                </div>
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>
-                  {d.toLocaleDateString("en-NZ", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}
-                  {" · "}
-                  {d.toLocaleTimeString("en-NZ", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-                {(() => {
-                  const d = new Date(tr.scheduled_date);
-                  const nzFmt = new Intl.DateTimeFormat("en-NZ", {
-                    timeZone: "Pacific/Auckland",
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                  });
-                  const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
-                  const hasSetup = tr.course_id && tr.layout_id;
-                  const disabled = !isToday || !hasSetup;
-                  let label = "🥏 Start tournament round";
-                  let reason = "";
-                  if (!hasSetup) reason = "No course or layout assigned yet";
-                  else if (!isToday)
-                    reason = `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Auckland" })}`;
-                  return (
-                    <div style={{ marginTop: 10 }}>
-                      <button
-                        style={{
-                          width: "100%",
-                          padding: "0.625rem",
-                          background: disabled ? t.textMuted : t.accent,
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 8,
-                          fontWeight: 700,
-                          fontSize: 14,
-                          cursor: disabled ? "not-allowed" : "pointer",
-                          opacity: disabled ? 0.6 : 1,
-                        }}
-                        disabled={disabled}
-                        onClick={() => startTournamentRound(tr)}
-                      >
-                        {label}
-                      </button>
-                      {reason && (
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: t.textMuted,
-                            textAlign: "center",
-                            marginTop: 4,
-                          }}
-                        >
-                          {reason}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })}
-
-          {upcomingEvents.map((ev) => {
-            const d = new Date(ev.event_date);
+          {allUpcoming.map((item) => {
+            const d = item._date;
             const nzFmt = new Intl.DateTimeFormat("en-NZ", {
               timeZone: "Pacific/Auckland",
               year: "numeric",
@@ -444,6 +316,139 @@ export default function DashboardPage() {
               day: "2-digit",
             });
             const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
+
+            if (item._type === "tournament") {
+              const tr = item;
+              return (
+                <div
+                  key={tr.id}
+                  style={{
+                    background: t.card,
+                    borderRadius: 10,
+                    padding: "0.875rem 1rem",
+                    marginBottom: 8,
+                    boxShadow: t.shadow,
+                    border: isToday
+                      ? `2px solid ${t.accent}`
+                      : `1px solid ${t.border}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: t.accentLight,
+                        color: t.accentText,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      🏆 Tournament
+                    </span>
+                    {isToday && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: t.successLight,
+                          color: t.success,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+                    {tr.tournaments?.name}
+                  </div>
+                  <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
+                    Round {tr.round_number} · {tr.courses?.name ?? "TBC"}
+                    {tr.layouts ? ` · ${tr.layouts.layout_name}` : ""}
+                  </div>
+                  <div
+                    style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
+                  >
+                    {d.toLocaleDateString("en-NZ", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      timeZone: "Pacific/Auckland",
+                    })}
+                    {" · "}
+                    {d.toLocaleTimeString("en-NZ", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "Pacific/Auckland",
+                    })}
+                  </div>
+                  {(() => {
+                    const nzFmt2 = new Intl.DateTimeFormat("en-NZ", {
+                      timeZone: "Pacific/Auckland",
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    });
+                    const todayNZ = nzFmt2.format(new Date());
+                    const roundDateNZ = nzFmt2.format(d);
+                    const isRoundToday = todayNZ === roundDateNZ;
+                    const hasSetup = tr.course_id && tr.layout_id;
+                    const disabled = !isRoundToday || !hasSetup;
+                    const reason = !hasSetup
+                      ? "No course or layout assigned yet"
+                      : !isRoundToday
+                        ? `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Auckland" })}`
+                        : "";
+                    return (
+                      <div style={{ marginTop: 10 }}>
+                        <button
+                          style={{
+                            width: "100%",
+                            padding: "0.625rem",
+                            background: disabled ? t.textMuted : t.accent,
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 8,
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            opacity: disabled ? 0.6 : 1,
+                          }}
+                          disabled={disabled}
+                          onClick={() => startTournamentRound(tr)}
+                        >
+                          🥏 Start tournament round
+                        </button>
+                        {reason && (
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: t.textMuted,
+                              textAlign: "center",
+                              marginTop: 4,
+                            }}
+                          >
+                            {reason}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            }
+
+            // Regular event
+            const ev = item;
             return (
               <div
                 key={ev.id}
@@ -507,7 +512,6 @@ export default function DashboardPage() {
                     weekday: "short",
                     day: "numeric",
                     month: "short",
-                    year: "numeric",
                     timeZone: "Pacific/Auckland",
                   })}
                   {" · "}
