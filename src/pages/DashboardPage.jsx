@@ -11,6 +11,7 @@ import {
   formatRelativeToParT,
 } from "../lib/tournamentScoring";
 
+// ── Section component ─────────────────────────────────────
 function Section({
   title,
   count,
@@ -84,6 +85,772 @@ function Section({
   );
 }
 
+// ── StatTile ──────────────────────────────────────────────
+function StatTile({ label, value, sub, icon, color, t }) {
+  return (
+    <div
+      style={{
+        background: t.card,
+        borderRadius: 10,
+        padding: "0.875rem 0.75rem",
+        boxShadow: t.shadow,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      }}
+    >
+      <div style={{ fontSize: 11, color: t.textSub, fontWeight: 500 }}>
+        {icon ? `${icon} ` : ""}
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          color: color ?? t.text,
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div
+          style={{
+            fontSize: 11,
+            color: t.textMuted,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {sub}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AchievementRow ────────────────────────────────────────
+function AchievementRow({ icon, label, value, highlight, t }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, color: t.textSub }}>{label}</div>
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: highlight ? t.success : t.text,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sparkline ─────────────────────────────────────────────
+function Sparkline({ scores, t }) {
+  if (!scores || scores.length < 2) return null;
+  const min = Math.min(...scores) - 1;
+  const max = Math.max(...scores) + 1;
+  const range = max - min || 1;
+  const w = 80;
+  const h = 30;
+  const points = scores
+    .map((s, i) => {
+      const x = (i / (scores.length - 1)) * w;
+      const y = h - ((s - min) / range) * h;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} style={{ overflow: "visible" }}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={t.accentText}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {scores.map((s, i) => {
+        const x = (i / (scores.length - 1)) * w;
+        const y = h - ((s - min) / range) * h;
+        return (
+          <circle
+            key={i}
+            cx={x}
+            cy={y}
+            r="3"
+            fill={s < 0 ? t.success : s > 0 ? t.danger : t.textSub}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+// ── StatsPanel ────────────────────────────────────────────
+function StatsPanel({ stats, t }) {
+  const trendIcon =
+    stats.trend === "improving"
+      ? "📈"
+      : stats.trend === "declining"
+        ? "📉"
+        : "➡️";
+  const trendLabel =
+    stats.trend === "improving"
+      ? "Improving"
+      : stats.trend === "declining"
+        ? "Declining"
+        : "Steady";
+  const trendColor =
+    stats.trend === "improving"
+      ? t.success
+      : stats.trend === "declining"
+        ? t.danger
+        : t.textSub;
+
+  function relFormat(n) {
+    if (n == null) return "—";
+    if (n === 0) return "E";
+    return n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}
+      >
+        <StatTile label="Rounds" value={stats.totalRounds} t={t} />
+        <StatTile
+          label="Best round"
+          value={
+            stats.bestRound ? relFormat(stats.bestRound.relativeToPar) : "—"
+          }
+          sub={stats.bestRound?.courseName}
+          color={stats.bestRound?.relativeToPar < 0 ? t.success : t.text}
+          t={t}
+        />
+        <StatTile
+          label="Average"
+          value={relFormat(stats.avgRelToPar)}
+          color={
+            stats.avgRelToPar < 0
+              ? t.success
+              : stats.avgRelToPar > 0
+                ? t.danger
+                : t.textSub
+          }
+          t={t}
+        />
+      </div>
+
+      {stats.last5Scores.length >= 2 && (
+        <div
+          style={{
+            background: t.card,
+            borderRadius: 10,
+            padding: "0.875rem 1rem",
+            boxShadow: t.shadow,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>
+              Last 5 rounds
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 16 }}>{trendIcon}</span>
+              <span
+                style={{ fontSize: 14, fontWeight: 700, color: trendColor }}
+              >
+                {trendLabel}
+              </span>
+            </div>
+          </div>
+          <Sparkline scores={stats.last5Scores} t={t} />
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <StatTile
+          label="Under par streak"
+          value={
+            stats.currentStreak === 0 ? "None" : `${stats.currentStreak} rounds`
+          }
+          icon="🔥"
+          color={stats.currentStreak > 0 ? t.success : t.textSub}
+          t={t}
+        />
+        <StatTile
+          label="Best streak"
+          value={stats.bestStreak === 0 ? "None" : `${stats.bestStreak} rounds`}
+          icon="⭐"
+          t={t}
+        />
+      </div>
+
+      <div
+        style={{
+          background: t.card,
+          borderRadius: 10,
+          padding: "0.875rem 1rem",
+          boxShadow: t.shadow,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: t.textSub,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginBottom: 10,
+          }}
+        >
+          Achievements
+        </div>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+        >
+          <AchievementRow
+            icon="🦅"
+            label="Eagles"
+            value={stats.totalEagles}
+            t={t}
+          />
+          <AchievementRow
+            icon="🐦"
+            label="Birdies"
+            value={stats.totalBirdies}
+            t={t}
+          />
+          <AchievementRow
+            icon="🎯"
+            label="Aces"
+            value={stats.totalAces}
+            highlight={stats.totalAces > 0}
+            t={t}
+          />
+          <AchievementRow
+            icon="🐦‍⬛"
+            label="Best birdie round"
+            value={stats.bestBirdieRound?.birdies ?? 0}
+            t={t}
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {stats.homeCourse && (
+          <StatTile
+            label="Home course"
+            value={stats.homeCourse[0]}
+            sub={`${stats.homeCourse[1]} rounds`}
+            icon="⛳"
+            t={t}
+          />
+        )}
+        {stats.topPartner && (
+          <StatTile
+            label="Top partner"
+            value={stats.topPartner[0]}
+            sub={`${stats.topPartner[1]} rounds together`}
+            icon="🤝"
+            t={t}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MiniCalendar ──────────────────────────────────────────
+function MiniCalendar({ items, t }) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedDay, setSelectedDay] = useState(null);
+  const NZ_TZ = "Pacific/Auckland";
+
+  function toNZDate(str) {
+    return new Date(new Date(str).toLocaleString("en-US", { timeZone: NZ_TZ }));
+  }
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayNZ = toNZDate(new Date().toISOString());
+
+  const itemsByDay = {};
+  for (const item of items) {
+    const dateStr =
+      item._type === "tournament" ? item.scheduled_date : item.event_date;
+    const d = toNZDate(dateStr);
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    const day = d.getDate();
+    if (!itemsByDay[day]) itemsByDay[day] = [];
+    itemsByDay[day].push(item);
+  }
+
+  const selectedItems = selectedDay ? (itemsByDay[selectedDay] ?? []) : [];
+  const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
+
+  return (
+    <div
+      style={{
+        background: t.card,
+        borderRadius: 12,
+        padding: "0.875rem",
+        marginBottom: 8,
+        boxShadow: t.shadow,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
+        <button
+          onClick={() => {
+            setCurrentMonth(new Date(year, month - 1, 1));
+            setSelectedDay(null);
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            color: t.textSub,
+            cursor: "pointer",
+            fontSize: 18,
+            padding: "0 8px",
+          }}
+        >
+          ‹
+        </button>
+        <span style={{ fontWeight: 700, fontSize: 14, color: t.text }}>
+          {currentMonth.toLocaleDateString("en-NZ", {
+            month: "long",
+            year: "numeric",
+          })}
+        </span>
+        <button
+          onClick={() => {
+            setCurrentMonth(new Date(year, month + 1, 1));
+            setSelectedDay(null);
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            color: t.textSub,
+            cursor: "pointer",
+            fontSize: 18,
+            padding: "0 8px",
+          }}
+        >
+          ›
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          marginBottom: 4,
+        }}
+      >
+        {dayNames.map((d, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: "center",
+              fontSize: 11,
+              fontWeight: 600,
+              color: t.textMuted,
+            }}
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          gap: 2,
+        }}
+      >
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`e${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+          const dayItems = itemsByDay[day] ?? [];
+          const isToday =
+            todayNZ.getDate() === day &&
+            todayNZ.getMonth() === month &&
+            todayNZ.getFullYear() === year;
+          const isSelected = selectedDay === day;
+          const hasTournament = dayItems.some((i) => i._type === "tournament");
+          const hasEvent = dayItems.some((i) => i._type === "event");
+          return (
+            <div
+              key={day}
+              onClick={() => setSelectedDay(isSelected ? null : day)}
+              style={{
+                aspectRatio: "1",
+                borderRadius: 6,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: dayItems.length > 0 ? "pointer" : "default",
+                background: isSelected
+                  ? t.accent
+                  : isToday
+                    ? t.accentLight
+                    : "transparent",
+                border:
+                  isToday && !isSelected
+                    ? `1.5px solid ${t.accent}`
+                    : "1.5px solid transparent",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: isToday || isSelected ? 700 : 400,
+                  color: isSelected
+                    ? "#fff"
+                    : isToday
+                      ? t.accentText
+                      : dayItems.length > 0
+                        ? t.text
+                        : t.textMuted,
+                }}
+              >
+                {day}
+              </span>
+              {dayItems.length > 0 && (
+                <div style={{ display: "flex", gap: 2, marginTop: 1 }}>
+                  {hasTournament && (
+                    <div
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: "50%",
+                        background: isSelected ? "#fff" : t.accentText,
+                      }}
+                    />
+                  )}
+                  {hasEvent && (
+                    <div
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: "50%",
+                        background: isSelected ? "#fff" : t.warn,
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          marginTop: 8,
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: t.accentText,
+            }}
+          />
+          <span style={{ fontSize: 10, color: t.textSub }}>Tournament</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: t.warn,
+            }}
+          />
+          <span style={{ fontSize: 10, color: t.textSub }}>Event</span>
+        </div>
+      </div>
+
+      {selectedItems.length > 0 && (
+        <div
+          style={{
+            marginTop: 12,
+            borderTop: `1px solid ${t.border}`,
+            paddingTop: 10,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: t.textSub,
+              marginBottom: 8,
+            }}
+          >
+            {new Date(year, month, selectedDay).toLocaleDateString("en-NZ", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </div>
+          {selectedItems.map((item, i) => {
+            const isTournament = item._type === "tournament";
+            const dateStr = isTournament
+              ? item.scheduled_date
+              : item.event_date;
+            const time = new Date(dateStr).toLocaleTimeString("en-NZ", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: NZ_TZ,
+            });
+            return (
+              <div
+                key={i}
+                style={{
+                  padding: "8px 0",
+                  borderBottom:
+                    i < selectedItems.length - 1
+                      ? `1px solid ${t.borderCard}`
+                      : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "1px 6px",
+                      borderRadius: 4,
+                      background: isTournament ? t.accentLight : t.warnLight,
+                      color: isTournament ? t.accentText : t.warn,
+                    }}
+                  >
+                    {isTournament ? "🏆" : "📅"}
+                  </span>
+                  <span style={{ fontSize: 13, color: t.textMuted }}>
+                    {time}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: t.text,
+                    marginTop: 4,
+                  }}
+                >
+                  {isTournament
+                    ? `${item.tournaments?.name} — Round ${item.round_number}`
+                    : item.name}
+                </div>
+                {item.courses && (
+                  <div style={{ fontSize: 12, color: t.textSub }}>
+                    {item.courses.name}
+                    {item.layouts ? ` · ${item.layouts.layout_name}` : ""}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── MiniLeaderboard ───────────────────────────────────────
+function MiniLeaderboard({ tournament, t, navigate }) {
+  const [standings, setStandings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    load();
+  }, [tournament.id]);
+
+  async function load() {
+    const [roundRes, playerRes] = await Promise.all([
+      supabase
+        .from("tournament_rounds")
+        .select("*, layouts(layout_name, number_of_holes, loops, par_json)")
+        .eq("tournament_id", tournament.id)
+        .order("round_number"),
+      supabase
+        .from("tournament_players")
+        .select(
+          "*, profiles(id, full_name, nickname), tournament_divisions(name)",
+        )
+        .eq("tournament_id", tournament.id),
+    ]);
+    const roundList = roundRes.data ?? [];
+    const playerList = playerRes.data ?? [];
+    const linkedRoundIds = roundList
+      .filter((r) => r.round_id)
+      .map((r) => r.round_id);
+    let scores = [];
+    if (linkedRoundIds.length > 0) {
+      const { data: scoreData } = await supabase
+        .from("scores")
+        .select("player_id, strokes, round_id, hole_number, loop")
+        .in("round_id", linkedRoundIds);
+      scores = scoreData ?? [];
+    }
+    const calc =
+      tournament.format === "matchplay"
+        ? calcMatchplayStandings(playerList, roundList, scores, tournament)
+        : calcStrokeplayStandings(playerList, roundList, scores, tournament);
+    setStandings(calc.slice(0, 5));
+    setLoading(false);
+  }
+
+  return (
+    <div
+      style={{
+        background: t.card,
+        borderRadius: 12,
+        padding: "1rem",
+        marginBottom: "0.75rem",
+        boxShadow: t.shadow,
+        border: `2px solid ${t.accent}`,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+            🏆 {tournament.name}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: t.textSub,
+              marginTop: 2,
+              textTransform: "capitalize",
+            }}
+          >
+            {tournament.format} ·{" "}
+            {tournament.scoring_type === "best_rounds"
+              ? `Best ${tournament.best_rounds_count} rounds`
+              : "Total score"}
+          </div>
+        </div>
+        <button
+          style={{
+            padding: "4px 10px",
+            background: t.accentLight,
+            color: t.accentText,
+            border: `1px solid ${t.accent}`,
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/tournaments")}
+        >
+          Full standings →
+        </button>
+      </div>
+      {loading && (
+        <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>Loading...</p>
+      )}
+      {!loading && standings.length === 0 && (
+        <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>
+          No scores yet.
+        </p>
+      )}
+      {standings.map((p, i) => (
+        <div
+          key={p.player_id}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "6px 0",
+            borderBottom: `1px solid ${t.borderCard}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 800,
+                color: i === 0 ? t.accentText : t.textSub,
+                width: 20,
+              }}
+            >
+              {i + 1}
+            </span>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: i === 0 ? 700 : 500,
+                color: t.text,
+              }}
+            >
+              {p.name}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color:
+                tournament.format === "matchplay"
+                  ? t.text
+                  : p.relativeToPar < 0
+                    ? t.success
+                    : p.relativeToPar > 0
+                      ? t.danger
+                      : t.textSub,
+            }}
+          >
+            {tournament.format === "matchplay"
+              ? `${p.points ?? 0} pts`
+              : formatRelativeToParT(p.relativeToPar)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── DashboardPage ─────────────────────────────────────────
 export default function DashboardPage() {
   const { profile } = useAuth();
   const { darkMode } = useDarkMode();
@@ -94,28 +861,22 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [upcomingTournamentRounds, setUpcomingTournamentRounds] = useState([]);
   const [activeTournaments, setActiveTournaments] = useState([]);
-
+  const [showCalendar, setShowCalendar] = useState(false);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
   async function loadStats(userId) {
     setStatsLoading(true);
-
-    // Get all completed rounds this player was in
     const { data: roundPlayers } = await supabase
       .from("round_players")
       .select("round_id")
       .eq("player_id", userId);
-
     if (!roundPlayers || roundPlayers.length === 0) {
       setStats({ noData: true });
       setStatsLoading(false);
       return;
     }
-
     const roundIds = roundPlayers.map((r) => r.round_id);
-
-    // Get completed rounds with layout info
     const { data: rounds } = await supabase
       .from("rounds")
       .select(
@@ -124,14 +885,11 @@ export default function DashboardPage() {
       .in("id", roundIds)
       .eq("status", "complete")
       .order("played_at", { ascending: false });
-
     if (!rounds || rounds.length === 0) {
       setStats({ noData: true });
       setStatsLoading(false);
       return;
     }
-
-    // Get all scores for these rounds
     const { data: scores } = await supabase
       .from("scores")
       .select("round_id, hole_number, loop, strokes, player_id")
@@ -140,8 +898,6 @@ export default function DashboardPage() {
         rounds.map((r) => r.id),
       )
       .eq("player_id", userId);
-
-    // Get all round players to find playing partners
     const { data: allRoundPlayers } = await supabase
       .from("round_players")
       .select("round_id, player_id, profiles(full_name, nickname)")
@@ -151,16 +907,12 @@ export default function DashboardPage() {
       )
       .neq("player_id", userId);
 
-    // ── Calculate stats ────────────────────────────────────
-
-    // Group scores by round
     const scoresByRound = {};
     for (const s of scores ?? []) {
       if (!scoresByRound[s.round_id]) scoresByRound[s.round_id] = [];
       scoresByRound[s.round_id].push(s);
     }
 
-    // Per-round totals
     const roundStats = rounds
       .filter((r) => r.layouts?.par_json)
       .map((r) => {
@@ -173,8 +925,6 @@ export default function DashboardPage() {
         const expectedHoles = parJson.length * loops;
         const relativeToPar =
           holesPlayed === expectedHoles ? totalStrokes - totalPar : null;
-
-        // Count scoring types
         let eagles = 0,
           birdies = 0,
           pars = 0,
@@ -191,7 +941,6 @@ export default function DashboardPage() {
           else if (diff === 1) bogeys++;
           else doublePlus++;
         }
-
         return {
           roundId: r.id,
           playedAt: new Date(r.played_at),
@@ -219,7 +968,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Best round (lowest relative to par)
     const validRounds = roundStats.filter((r) => r.relativeToPar != null);
     const bestRound =
       validRounds.length > 0
@@ -227,15 +975,11 @@ export default function DashboardPage() {
             r.relativeToPar < best.relativeToPar ? r : best,
           )
         : null;
-
-    // Average relative to par
     const avgRelToPar =
       validRounds.length > 0
         ? validRounds.reduce((s, r) => s + r.relativeToPar, 0) /
           validRounds.length
         : null;
-
-    // Trend — last 5 vs previous 5
     const last5 = validRounds.slice(0, 5);
     const prev5 = validRounds.slice(5, 10);
     const last5Avg =
@@ -255,25 +999,20 @@ export default function DashboardPage() {
             : "steady"
         : null;
 
-    // Streaks — consecutive rounds under par
-    let currentStreak = 0;
-    let bestStreak = 0;
-    let tempStreak = 0;
+    let currentStreak = 0,
+      bestStreak = 0,
+      tempStreak = 0;
     for (const r of validRounds) {
       if (r.relativeToPar < 0) {
         tempStreak++;
         bestStreak = Math.max(bestStreak, tempStreak);
-        if (currentStreak === 0 && tempStreak > 0) currentStreak = tempStreak;
       } else {
-        if (currentStreak === 0) currentStreak = 0;
         tempStreak = 0;
       }
     }
-    // Reset currentStreak if first round wasn't under par
-    if (validRounds.length > 0 && validRounds[0].relativeToPar >= 0)
-      currentStreak = 0;
+    if (validRounds.length > 0 && validRounds[0].relativeToPar < 0)
+      currentStreak = tempStreak;
 
-    // Achievements
     const totalEagles = roundStats.reduce((s, r) => s + r.eagles, 0);
     const totalBirdies = roundStats.reduce((s, r) => s + r.birdies, 0);
     const totalAces = roundStats.reduce((s, r) => s + r.aces, 0);
@@ -282,7 +1021,6 @@ export default function DashboardPage() {
       roundStats[0],
     );
 
-    // Home course (most played)
     const courseCounts = {};
     for (const r of roundStats) {
       if (r.courseName)
@@ -292,7 +1030,6 @@ export default function DashboardPage() {
       (a, b) => b[1] - a[1],
     )[0];
 
-    // Most played with
     const partnerCounts = {};
     for (const rp of allRoundPlayers ?? []) {
       const name = rp.profiles?.nickname || rp.profiles?.full_name;
@@ -301,8 +1038,6 @@ export default function DashboardPage() {
     const topPartner = Object.entries(partnerCounts).sort(
       (a, b) => b[1] - a[1],
     )[0];
-
-    // Last 5 scores for sparkline
     const last5Scores = validRounds
       .slice(0, 5)
       .reverse()
@@ -326,10 +1061,11 @@ export default function DashboardPage() {
     });
     setStatsLoading(false);
   }
+
   useEffect(() => {
     const now = new Date().toISOString();
-    // Active tournaments (started but not ended)
-    const nowStr = new Date().toISOString().split("T")[0];
+    const nowStr = now.split("T")[0];
+
     supabase
       .from("tournaments")
       .select("*")
@@ -337,6 +1073,7 @@ export default function DashboardPage() {
       .lte("start_date", nowStr)
       .gte("end_date", nowStr)
       .then(({ data }) => setActiveTournaments(data ?? []));
+
     supabase
       .from("announcements")
       .select("*")
@@ -392,11 +1129,12 @@ export default function DashboardPage() {
         .order("played_at", { ascending: false })
         .limit(5)
         .then(({ data }) => setRecentRounds(data ?? []));
+
+      loadStats(profile.id);
     }
   }, [profile]);
 
   async function startTournamentRound(tr) {
-    console.log("startTournamentRound called", tr);
     navigate("/round/new", {
       state: {
         tournamentRoundId: tr.id,
@@ -411,19 +1149,18 @@ export default function DashboardPage() {
       },
     });
   }
-  const [showCalendar, setShowCalendar] = useState(false);
+
   const upcomingCount = upcomingEvents.length + upcomingTournamentRounds.length;
-  // Merge and sort all upcoming items by date
   const allUpcoming = [
     ...upcomingEvents.map((e) => ({
       ...e,
       _type: "event",
       _date: new Date(e.event_date),
     })),
-    ...upcomingTournamentRounds.map((t) => ({
-      ...t,
+    ...upcomingTournamentRounds.map((tr) => ({
+      ...tr,
       _type: "tournament",
-      _date: new Date(t.scheduled_date),
+      _date: new Date(tr.scheduled_date),
     })),
   ].sort((a, b) => a._date - b._date);
 
@@ -431,7 +1168,7 @@ export default function DashboardPage() {
     <Layout
       title={`G'day, ${profile?.nickname || profile?.full_name?.split(" ")[0] || "Mate"} 👋`}
     >
-      {/* Quick actions row */}
+      {/* Quick actions */}
       <div style={{ display: "flex", gap: 10, marginBottom: "1rem" }}>
         <Link
           to="/round/new"
@@ -480,73 +1217,16 @@ export default function DashboardPage() {
           </Link>
         )}
       </div>
-      {/* Latest news */}
-      {announcements.length > 0 && (
-        <Section
-          title="Latest news"
-          count={announcements.length}
-          defaultOpen={true}
+
+      {/* Active tournament leaderboards */}
+      {activeTournaments.map((tournament) => (
+        <MiniLeaderboard
+          key={tournament.id}
+          tournament={tournament}
           t={t}
-        >
-          {announcements.map((a) => (
-            <div
-              key={a.id}
-              style={{
-                background: t.card,
-                borderRadius: 10,
-                padding: "0.875rem 1rem",
-                marginBottom: 8,
-                boxShadow: t.shadow,
-              }}
-            >
-              {a.pinned && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#92400e",
-                    background: "#fef3c7",
-                    padding: "1px 6px",
-                    borderRadius: 4,
-                    marginBottom: 4,
-                    display: "inline-block",
-                  }}
-                >
-                  📌 Pinned
-                </span>
-              )}
-              <div
-                style={{
-                  fontWeight: 600,
-                  fontSize: 15,
-                  color: t.text,
-                  marginBottom: 4,
-                }}
-              >
-                {a.title}
-              </div>
-              <div style={{ fontSize: 14, color: t.textSub, lineHeight: 1.4 }}>
-                {a.body.slice(0, 120)}
-                {a.body.length > 120 ? "…" : ""}
-              </div>
-            </div>
-          ))}
-          <Link
-            to="/news"
-            style={{
-              display: "block",
-              textAlign: "center",
-              fontSize: 13,
-              color: t.accentText,
-              textDecoration: "none",
-              fontWeight: 500,
-              padding: "0.25rem 0 0.5rem",
-            }}
-          >
-            See all →
-          </Link>
-        </Section>
-      )}
-      {/* Active tournament mini leaderboards */}
+          navigate={navigate}
+        />
+      ))}
 
       {/* Upcoming */}
       {upcomingCount > 0 && (
@@ -675,9 +1355,8 @@ export default function DashboardPage() {
                         month: "2-digit",
                         day: "2-digit",
                       });
-                      const todayNZ = nzFmt2.format(new Date());
-                      const roundDateNZ = nzFmt2.format(d);
-                      const isRoundToday = todayNZ === roundDateNZ;
+                      const isRoundToday =
+                        nzFmt2.format(new Date()) === nzFmt2.format(d);
                       const hasSetup = tr.course_id && tr.layout_id;
                       const disabled = !isRoundToday || !hasSetup;
                       const reason = !hasSetup
@@ -724,7 +1403,6 @@ export default function DashboardPage() {
                 );
               }
 
-              // Regular event
               const ev = item;
               return (
                 <div
@@ -821,6 +1499,73 @@ export default function DashboardPage() {
         </Section>
       )}
 
+      {/* Latest news */}
+      {announcements.length > 0 && (
+        <Section
+          title="Latest news"
+          count={announcements.length}
+          defaultOpen={false}
+          t={t}
+        >
+          {announcements.map((a) => (
+            <div
+              key={a.id}
+              style={{
+                background: t.card,
+                borderRadius: 10,
+                padding: "0.875rem 1rem",
+                marginBottom: 8,
+                boxShadow: t.shadow,
+              }}
+            >
+              {a.pinned && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#92400e",
+                    background: "#fef3c7",
+                    padding: "1px 6px",
+                    borderRadius: 4,
+                    marginBottom: 4,
+                    display: "inline-block",
+                  }}
+                >
+                  📌 Pinned
+                </span>
+              )}
+              <div
+                style={{
+                  fontWeight: 600,
+                  fontSize: 15,
+                  color: t.text,
+                  marginBottom: 4,
+                }}
+              >
+                {a.title}
+              </div>
+              <div style={{ fontSize: 14, color: t.textSub, lineHeight: 1.4 }}>
+                {a.body.slice(0, 120)}
+                {a.body.length > 120 ? "…" : ""}
+              </div>
+            </div>
+          ))}
+          <Link
+            to="/news"
+            style={{
+              display: "block",
+              textAlign: "center",
+              fontSize: 13,
+              color: t.accentText,
+              textDecoration: "none",
+              fontWeight: 500,
+              padding: "0.25rem 0 0.5rem",
+            }}
+          >
+            See all →
+          </Link>
+        </Section>
+      )}
+
       {/* Recent rounds */}
       {recentRounds.length > 0 && (
         <Section
@@ -900,6 +1645,7 @@ export default function DashboardPage() {
           </Link>
         </Section>
       )}
+
       {/* My stats */}
       <Section title="My stats" defaultOpen={false} t={t}>
         {statsLoading && (
@@ -916,801 +1662,4 @@ export default function DashboardPage() {
       </Section>
     </Layout>
   );
-  function MiniCalendar({ items, t }) {
-    const [currentMonth, setCurrentMonth] = useState(() => {
-      const now = new Date();
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    });
-    const [selectedDay, setSelectedDay] = useState(null);
-
-    const NZ_TZ = "Pacific/Auckland";
-    function toNZDate(str) {
-      return new Date(
-        new Date(str).toLocaleString("en-US", { timeZone: NZ_TZ }),
-      );
-    }
-
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const todayNZ = toNZDate(new Date().toISOString());
-
-    // Map items to NZ dates
-    const itemsByDay = {};
-    for (const item of items) {
-      const dateStr =
-        item._type === "tournament" ? item.scheduled_date : item.event_date;
-      const d = toNZDate(dateStr);
-      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
-      const day = d.getDate();
-      if (!itemsByDay[day]) itemsByDay[day] = [];
-      itemsByDay[day].push(item);
-    }
-
-    const selectedItems = selectedDay ? (itemsByDay[selectedDay] ?? []) : [];
-    const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
-
-    return (
-      <div
-        style={{
-          background: t.card,
-          borderRadius: 12,
-          padding: "0.875rem",
-          marginBottom: 8,
-          boxShadow: t.shadow,
-        }}
-      >
-        {/* Month nav */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <button
-            onClick={() => {
-              setCurrentMonth(new Date(year, month - 1, 1));
-              setSelectedDay(null);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: t.textSub,
-              cursor: "pointer",
-              fontSize: 18,
-              padding: "0 8px",
-            }}
-          >
-            ‹
-          </button>
-          <span style={{ fontWeight: 700, fontSize: 14, color: t.text }}>
-            {currentMonth.toLocaleDateString("en-NZ", {
-              month: "long",
-              year: "numeric",
-            })}
-          </span>
-          <button
-            onClick={() => {
-              setCurrentMonth(new Date(year, month + 1, 1));
-              setSelectedDay(null);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: t.textSub,
-              cursor: "pointer",
-              fontSize: 18,
-              padding: "0 8px",
-            }}
-          >
-            ›
-          </button>
-        </div>
-
-        {/* Day headers */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, 1fr)",
-            marginBottom: 4,
-          }}
-        >
-          {dayNames.map((d, i) => (
-            <div
-              key={i}
-              style={{
-                textAlign: "center",
-                fontSize: 11,
-                fontWeight: 600,
-                color: t.textMuted,
-              }}
-            >
-              {d}
-            </div>
-          ))}
-        </div>
-
-        {/* Day grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, 1fr)",
-            gap: 2,
-          }}
-        >
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`e${i}`} />
-          ))}
-          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-            const dayItems = itemsByDay[day] ?? [];
-            const isToday =
-              todayNZ.getDate() === day &&
-              todayNZ.getMonth() === month &&
-              todayNZ.getFullYear() === year;
-            const isSelected = selectedDay === day;
-            const hasTournament = dayItems.some(
-              (i) => i._type === "tournament",
-            );
-            const hasEvent = dayItems.some((i) => i._type === "event");
-
-            return (
-              <div
-                key={day}
-                onClick={() => setSelectedDay(isSelected ? null : day)}
-                style={{
-                  aspectRatio: "1",
-                  borderRadius: 6,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: dayItems.length > 0 ? "pointer" : "default",
-                  background: isSelected
-                    ? t.accent
-                    : isToday
-                      ? t.accentLight
-                      : "transparent",
-                  border:
-                    isToday && !isSelected
-                      ? `1.5px solid ${t.accent}`
-                      : "1.5px solid transparent",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: isToday || isSelected ? 700 : 400,
-                    color: isSelected
-                      ? "#fff"
-                      : isToday
-                        ? t.accentText
-                        : dayItems.length > 0
-                          ? t.text
-                          : t.textMuted,
-                  }}
-                >
-                  {day}
-                </span>
-                {dayItems.length > 0 && (
-                  <div style={{ display: "flex", gap: 2, marginTop: 1 }}>
-                    {hasTournament && (
-                      <div
-                        style={{
-                          width: 4,
-                          height: 4,
-                          borderRadius: "50%",
-                          background: isSelected ? "#fff" : t.accentText,
-                        }}
-                      />
-                    )}
-                    {hasEvent && (
-                      <div
-                        style={{
-                          width: 4,
-                          height: 4,
-                          borderRadius: "50%",
-                          background: isSelected ? "#fff" : t.warn,
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            marginTop: 8,
-            justifyContent: "center",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: t.accentText,
-              }}
-            />
-            <span style={{ fontSize: 10, color: t.textSub }}>Tournament</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: t.warn,
-              }}
-            />
-            <span style={{ fontSize: 10, color: t.textSub }}>Event</span>
-          </div>
-        </div>
-
-        {/* Selected day items */}
-        {selectedItems.length > 0 && (
-          <div
-            style={{
-              marginTop: 12,
-              borderTop: `1px solid ${t.border}`,
-              paddingTop: 10,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: t.textSub,
-                marginBottom: 8,
-              }}
-            >
-              {new Date(year, month, selectedDay).toLocaleDateString("en-NZ", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-            </div>
-            {selectedItems.map((item, i) => {
-              const isTournament = item._type === "tournament";
-              const dateStr = isTournament
-                ? item.scheduled_date
-                : item.event_date;
-              const time = new Date(dateStr).toLocaleTimeString("en-NZ", {
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: NZ_TZ,
-              });
-              return (
-                <div
-                  key={i}
-                  style={{
-                    padding: "8px 0",
-                    borderBottom:
-                      i < selectedItems.length - 1
-                        ? `1px solid ${t.borderCard}`
-                        : "none",
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                        background: isTournament ? t.accentLight : t.warnLight,
-                        color: isTournament ? t.accentText : t.warn,
-                      }}
-                    >
-                      {isTournament ? "🏆" : "📅"}
-                    </span>
-                    <span style={{ fontSize: 13, color: t.textMuted }}>
-                      {time}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: t.text,
-                      marginTop: 4,
-                    }}
-                  >
-                    {isTournament
-                      ? `${item.tournaments?.name} — Round ${item.round_number}`
-                      : item.name}
-                  </div>
-                  {item.courses && (
-                    <div style={{ fontSize: 12, color: t.textSub }}>
-                      {item.courses.name}
-                      {item.layouts ? ` · ${item.layouts.layout_name}` : ""}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
-  function StatsPanel({ stats, t }) {
-    const trendIcon =
-      stats.trend === "improving"
-        ? "📈"
-        : stats.trend === "declining"
-          ? "📉"
-          : "➡️";
-    const trendLabel =
-      stats.trend === "improving"
-        ? "Improving"
-        : stats.trend === "declining"
-          ? "Declining"
-          : "Steady";
-    const trendColor =
-      stats.trend === "improving"
-        ? t.success
-        : stats.trend === "declining"
-          ? t.danger
-          : t.textSub;
-
-    function relFormat(n) {
-      if (n == null) return "—";
-      if (n === 0) return "E";
-      return n > 0 ? `+${n.toFixed(1)}` : n.toFixed(1);
-    }
-
-    // Sparkline for last 5 rounds
-    function Sparkline({ scores }) {
-      if (!scores || scores.length < 2) return null;
-      const min = Math.min(...scores) - 1;
-      const max = Math.max(...scores) + 1;
-      const range = max - min || 1;
-      const w = 80;
-      const h = 30;
-      const points = scores
-        .map((s, i) => {
-          const x = (i / (scores.length - 1)) * w;
-          const y = h - ((s - min) / range) * h;
-          return `${x},${y}`;
-        })
-        .join(" ");
-
-      return (
-        <svg width={w} height={h} style={{ overflow: "visible" }}>
-          <polyline
-            points={points}
-            fill="none"
-            stroke={t.accentText}
-            strokeWidth="2"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-          {scores.map((s, i) => {
-            const x = (i / (scores.length - 1)) * w;
-            const y = h - ((s - min) / range) * h;
-            return (
-              <circle
-                key={i}
-                cx={x}
-                cy={y}
-                r="3"
-                fill={s < 0 ? t.success : s > 0 ? t.danger : t.textSub}
-              />
-            );
-          })}
-        </svg>
-      );
-    }
-
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* Top row — key numbers */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 8,
-          }}
-        >
-          <StatTile label="Rounds" value={stats.totalRounds} t={t} />
-          <StatTile
-            label="Best round"
-            value={
-              stats.bestRound ? relFormat(stats.bestRound.relativeToPar) : "—"
-            }
-            sub={stats.bestRound?.courseName}
-            color={stats.bestRound?.relativeToPar < 0 ? t.success : t.text}
-            t={t}
-          />
-          <StatTile
-            label="Average"
-            value={relFormat(stats.avgRelToPar)}
-            color={
-              stats.avgRelToPar < 0
-                ? t.success
-                : stats.avgRelToPar > 0
-                  ? t.danger
-                  : t.textSub
-            }
-            t={t}
-          />
-        </div>
-
-        {/* Trend + sparkline */}
-        {stats.last5Scores.length >= 2 && (
-          <div
-            style={{
-              background: t.card,
-              borderRadius: 10,
-              padding: "0.875rem 1rem",
-              boxShadow: t.shadow,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 12, color: t.textSub, marginBottom: 4 }}>
-                Last 5 rounds
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 16 }}>{trendIcon}</span>
-                <span
-                  style={{ fontSize: 14, fontWeight: 700, color: trendColor }}
-                >
-                  {trendLabel}
-                </span>
-              </div>
-            </div>
-            <Sparkline scores={stats.last5Scores} />
-          </div>
-        )}
-
-        {/* Streaks */}
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
-        >
-          <StatTile
-            label="Under par streak"
-            value={
-              stats.currentStreak === 0
-                ? "None"
-                : `${stats.currentStreak} rounds`
-            }
-            icon="🔥"
-            color={stats.currentStreak > 0 ? t.success : t.textSub}
-            t={t}
-          />
-          <StatTile
-            label="Best streak"
-            value={
-              stats.bestStreak === 0 ? "None" : `${stats.bestStreak} rounds`
-            }
-            icon="⭐"
-            t={t}
-          />
-        </div>
-
-        {/* Achievements */}
-        <div
-          style={{
-            background: t.card,
-            borderRadius: 10,
-            padding: "0.875rem 1rem",
-            boxShadow: t.shadow,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: t.textSub,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              marginBottom: 10,
-            }}
-          >
-            Achievements
-          </div>
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
-          >
-            <AchievementRow
-              icon="🦅"
-              label="Eagles"
-              value={stats.totalEagles}
-              t={t}
-            />
-            <AchievementRow
-              icon="🐦"
-              label="Birdies"
-              value={stats.totalBirdies}
-              t={t}
-            />
-            <AchievementRow
-              icon="🎯"
-              label="Aces"
-              value={stats.totalAces}
-              highlight={stats.totalAces > 0}
-              t={t}
-            />
-            <AchievementRow
-              icon="🐦‍⬛"
-              label="Best birdie round"
-              value={stats.bestBirdieRound?.birdies ?? 0}
-              t={t}
-            />
-          </div>
-        </div>
-
-        {/* Social */}
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
-        >
-          {stats.homeCourse && (
-            <StatTile
-              label="Home course"
-              value={stats.homeCourse[0]}
-              sub={`${stats.homeCourse[1]} rounds`}
-              icon="⛳"
-              t={t}
-            />
-          )}
-          {stats.topPartner && (
-            <StatTile
-              label="Top partner"
-              value={stats.topPartner[0]}
-              sub={`${stats.topPartner[1]} rounds together`}
-              icon="🤝"
-              t={t}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function StatTile({ label, value, sub, icon, color, t }) {
-    return (
-      <div
-        style={{
-          background: t.card,
-          borderRadius: 10,
-          padding: "0.875rem 0.75rem",
-          boxShadow: t.shadow,
-          display: "flex",
-          flexDirection: "column",
-          gap: 4,
-        }}
-      >
-        <div style={{ fontSize: 11, color: t.textSub, fontWeight: 500 }}>
-          {icon ? `${icon} ` : ""}
-          {label}
-        </div>
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: color ?? t.text,
-            lineHeight: 1.1,
-          }}
-        >
-          {value}
-        </div>
-        {sub && (
-          <div
-            style={{
-              fontSize: 11,
-              color: t.textMuted,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {sub}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function AchievementRow({ icon, label, value, highlight, t }) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, color: t.textSub }}>{label}</div>
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: highlight ? t.success : t.text,
-            }}
-          >
-            {value}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  function MiniLeaderboard({ tournament, t, navigate }) {
-    const [standings, setStandings] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      load();
-    }, [tournament.id]);
-
-    async function load() {
-      const [roundRes, playerRes] = await Promise.all([
-        supabase
-          .from("tournament_rounds")
-          .select("*, layouts(layout_name, number_of_holes, loops, par_json)")
-          .eq("tournament_id", tournament.id)
-          .order("round_number"),
-        supabase
-          .from("tournament_players")
-          .select(
-            "*, profiles(id, full_name, nickname), tournament_divisions(name)",
-          )
-          .eq("tournament_id", tournament.id),
-      ]);
-
-      const roundList = roundRes.data ?? [];
-      const playerList = playerRes.data ?? [];
-      const linkedRoundIds = roundList
-        .filter((r) => r.round_id)
-        .map((r) => r.round_id);
-
-      let scores = [];
-      if (linkedRoundIds.length > 0) {
-        const { data: scoreData } = await supabase
-          .from("scores")
-          .select("player_id, strokes, round_id, hole_number, loop")
-          .in("round_id", linkedRoundIds);
-        scores = scoreData ?? [];
-      }
-
-      const calc =
-        tournament.format === "matchplay"
-          ? calcMatchplayStandings(playerList, roundList, scores, tournament)
-          : calcStrokeplayStandings(playerList, roundList, scores, tournament);
-
-      setStandings(calc.slice(0, 5)); // top 5 only on dashboard
-      setLoading(false);
-    }
-
-    return (
-      <div
-        style={{
-          background: t.card,
-          borderRadius: 12,
-          padding: "1rem",
-          marginBottom: "0.75rem",
-          boxShadow: t.shadow,
-          border: `2px solid ${t.accent}`,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-              🏆 {tournament.name}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: t.textSub,
-                marginTop: 2,
-                textTransform: "capitalize",
-              }}
-            >
-              {tournament.format} ·{" "}
-              {tournament.scoring_type === "best_rounds"
-                ? `Best ${tournament.best_rounds_count} rounds`
-                : "Total score"}
-            </div>
-          </div>
-          <button
-            style={{
-              padding: "4px 10px",
-              background: t.accentLight,
-              color: t.accentText,
-              border: `1px solid ${t.accent}`,
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/tournaments")}
-          >
-            Full standings →
-          </button>
-        </div>
-
-        {loading && (
-          <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>
-            Loading...
-          </p>
-        )}
-
-        {!loading && standings.length === 0 && (
-          <p style={{ color: t.textSub, fontSize: 13, margin: 0 }}>
-            No scores yet.
-          </p>
-        )}
-
-        {standings.map((p, i) => (
-          <div
-            key={p.player_id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "6px 0",
-              borderBottom: `1px solid ${t.borderCard}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  color: i === 0 ? t.accentText : t.textSub,
-                  width: 20,
-                }}
-              >
-                {i + 1}
-              </span>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: i === 0 ? 700 : 500,
-                  color: t.text,
-                }}
-              >
-                {p.name}
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color:
-                  tournament.format === "matchplay"
-                    ? t.text
-                    : p.relativeToPar < 0
-                      ? t.success
-                      : p.relativeToPar > 0
-                        ? t.danger
-                        : t.textSub,
-              }}
-            >
-              {tournament.format === "matchplay"
-                ? `${p.points ?? 0} pts`
-                : formatRelativeToParT(p.relativeToPar)}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
 }
