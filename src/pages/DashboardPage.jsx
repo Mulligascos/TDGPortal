@@ -1222,7 +1222,7 @@ export default function DashboardPage() {
         <Section
           title="Latest news"
           count={announcements.length}
-          defaultOpen={false}
+          defaultOpen={true}
           t={t}
         >
           {announcements.map((a) => (
@@ -1300,7 +1300,7 @@ export default function DashboardPage() {
           title="Upcoming"
           count={upcomingCount}
           accent={t.accent}
-          defaultOpen
+          defaultOpen={false}
           t={t}
           action={
             <button
@@ -1579,85 +1579,6 @@ export default function DashboardPage() {
           <StatsPanel stats={stats} t={t} />
         )}
       </Section>
-      {/* Recent rounds */}
-      {recentRounds.length > 0 && (
-        <Section
-          title="Recent rounds"
-          count={recentRounds.length}
-          defaultOpen={false}
-          t={t}
-        >
-          {recentRounds.map((r) => (
-            <Link
-              key={r.id}
-              to={`/round/${r.id}`}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                background: t.card,
-                borderRadius: 10,
-                padding: "0.875rem 1rem",
-                marginBottom: 8,
-                textDecoration: "none",
-                boxShadow: t.shadow,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15, color: t.text }}>
-                  {r.courses?.name}
-                </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: t.textSub,
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {r.layouts?.layout_name} · {r.format}
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div
-                  style={{ fontSize: 13, color: t.textSub, marginBottom: 4 }}
-                >
-                  {new Date(r.played_at).toLocaleDateString("en-NZ", {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    ...(r.status === "complete"
-                      ? { background: t.successLight, color: t.success }
-                      : { background: t.warnLight, color: t.warn }),
-                  }}
-                >
-                  {r.status === "complete" ? "Complete" : "In progress"}
-                </div>
-              </div>
-            </Link>
-          ))}
-          <Link
-            to="/history"
-            style={{
-              display: "block",
-              textAlign: "center",
-              fontSize: 13,
-              color: t.accentText,
-              textDecoration: "none",
-              fontWeight: 500,
-              padding: "0.25rem 0 0.5rem",
-            }}
-          >
-            See all →
-          </Link>
-        </Section>
-      )}
     </Layout>
   );
 }
