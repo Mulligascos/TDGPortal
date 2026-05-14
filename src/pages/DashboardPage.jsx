@@ -581,8 +581,8 @@ function MiniCalendar({ items, t }) {
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <div
             style={{
-              width: 6,
-              height: 6,
+              width: 16,
+              height: 16,
               borderRadius: "50%",
               background: t.accentText,
             }}
@@ -592,8 +592,8 @@ function MiniCalendar({ items, t }) {
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <div
             style={{
-              width: 6,
-              height: 6,
+              width: 16,
+              height: 16,
               borderRadius: "50%",
               background: t.warn,
             }}
