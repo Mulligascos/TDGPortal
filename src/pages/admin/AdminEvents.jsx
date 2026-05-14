@@ -158,6 +158,10 @@ function EventsTab() {
   async function save(e) {
     e.preventDefault();
     setError(null);
+
+    console.log("form.event_date (raw input):", form.event_date);
+    console.log("nzLocalToUTC result:", nzLocalToUTC(form.event_date));
+
     const payload = {
       name: form.name,
       description: form.description || null,
@@ -166,6 +170,8 @@ function EventsTab() {
       format: form.format,
       event_date: form.event_date ? nzLocalToUTC(form.event_date) : null,
     };
+
+    console.log("payload.event_date:", payload.event_date);
     if (editing) {
       const { error } = await supabase
         .from("events")
