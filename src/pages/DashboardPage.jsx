@@ -236,7 +236,7 @@ function StatsPanel({ stats, t }) {
           t={t}
         />
         <StatTile
-          label="Average"
+          label="Average score vs Par"
           value={relFormat(stats.avgRelToPar)}
           color={
             stats.avgRelToPar < 0
@@ -289,7 +289,7 @@ function StatsPanel({ stats, t }) {
           t={t}
         />
         <StatTile
-          label="Best streak"
+          label="Longest streak"
           value={stats.bestStreak === 0 ? "None" : `${stats.bestStreak} rounds`}
           icon="⭐"
           t={t}
@@ -340,7 +340,7 @@ function StatsPanel({ stats, t }) {
           />
           <AchievementRow
             icon="🐦‍⬛"
-            label="Best birdie round"
+            label="Most birdies in a round"
             value={stats.bestBirdieRound?.birdies ?? 0}
             t={t}
           />
@@ -350,7 +350,7 @@ function StatsPanel({ stats, t }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {stats.homeCourse && (
           <StatTile
-            label="Home course"
+            label="Most rounds played at"
             value={stats.homeCourse[0]}
             sub={`${stats.homeCourse[1]} rounds`}
             icon="⛳"
@@ -359,7 +359,7 @@ function StatsPanel({ stats, t }) {
         )}
         {stats.topPartner && (
           <StatTile
-            label="Top partner"
+            label="Most rounds played with"
             value={stats.topPartner[0]}
             sub={`${stats.topPartner[1]} rounds together`}
             icon="🤝"
@@ -432,7 +432,7 @@ function MiniCalendar({ items, t }) {
             border: "none",
             color: t.textSub,
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: 25,
             padding: "0 8px",
           }}
         >
@@ -454,7 +454,7 @@ function MiniCalendar({ items, t }) {
             border: "none",
             color: t.textSub,
             cursor: "pointer",
-            fontSize: 18,
+            fontSize: 25,
             padding: "0 8px",
           }}
         >
@@ -474,7 +474,7 @@ function MiniCalendar({ items, t }) {
             key={i}
             style={{
               textAlign: "center",
-              fontSize: 11,
+              fontSize: 17,
               fontWeight: 600,
               color: t.textMuted,
             }}
@@ -528,7 +528,7 @@ function MiniCalendar({ items, t }) {
             >
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 19,
                   fontWeight: isToday || isSelected ? 700 : 400,
                   color: isSelected
                     ? "#fff"
