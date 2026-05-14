@@ -454,7 +454,7 @@ function MiniCalendar({ items, t }) {
             border: "none",
             color: t.textSub,
             cursor: "pointer",
-            fontSize: 25,
+            fontSize: 22,
             padding: "0 8px",
           }}
         >
@@ -474,7 +474,7 @@ function MiniCalendar({ items, t }) {
             key={i}
             style={{
               textAlign: "center",
-              fontSize: 17,
+              fontSize: 14,
               fontWeight: 600,
               color: t.textMuted,
             }}
@@ -546,8 +546,8 @@ function MiniCalendar({ items, t }) {
                   {hasTournament && (
                     <div
                       style={{
-                        width: 14,
-                        height: 14,
+                        width: 12,
+                        height: 12,
                         borderRadius: "50%",
                         background: isSelected ? "#fff" : t.accentText,
                       }}
@@ -556,8 +556,8 @@ function MiniCalendar({ items, t }) {
                   {hasEvent && (
                     <div
                       style={{
-                        width: 14,
-                        height: 14,
+                        width: 12,
+                        height: 12,
                         borderRadius: "50%",
                         background: isSelected ? "#fff" : t.warn,
                       }}
@@ -581,8 +581,8 @@ function MiniCalendar({ items, t }) {
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <div
             style={{
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
               borderRadius: "50%",
               background: t.accentText,
             }}
@@ -592,8 +592,8 @@ function MiniCalendar({ items, t }) {
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <div
             style={{
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
               borderRadius: "50%",
               background: t.warn,
             }}
