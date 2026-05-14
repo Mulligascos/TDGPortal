@@ -5,18 +5,6 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { getTheme } from "../../lib/theme";
 import Layout from "../../components/shared/Layout";
 
-function nzLocalToUTC(localStr) {
-  if (!localStr) return null;
-  const localDate = new Date(localStr);
-  const utcDate = new Date(
-    localDate.toLocaleString("en-US", { timeZone: "UTC" }),
-  );
-  const nzDate = new Date(
-    localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
-  );
-  const offsetMs = nzDate - utcDate;
-  return new Date(localDate.getTime() - offsetMs).toISOString();
-}
 export default function AdminEvents() {
   const { darkMode } = useDarkMode();
   const t = getTheme(darkMode);
@@ -29,6 +17,19 @@ export default function AdminEvents() {
    * Convert a UTC ISO string back to NZ local datetime-local input format
    * e.g. "2026-05-17T07:00:00+00:00" → "2026-05-17T19:00"
    */
+  function nzLocalToUTC(localStr) {
+    if (!localStr) return null;
+    const localDate = new Date(localStr);
+    const utcDate = new Date(
+      localDate.toLocaleString("en-US", { timeZone: "UTC" }),
+    );
+    const nzDate = new Date(
+      localDate.toLocaleString("en-US", { timeZone: "Pacific/Auckland" }),
+    );
+    const offsetMs = nzDate - utcDate;
+    return new Date(localDate.getTime() - offsetMs).toISOString();
+  }
+
   function utcToNZLocal(utcStr) {
     if (!utcStr) return "";
     const d = new Date(utcStr);
