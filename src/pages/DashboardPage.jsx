@@ -11,55 +11,74 @@ import {
   formatRelativeToParT,
 } from "../lib/tournamentScoring";
 
-function Section({ title, count, defaultOpen = true, accent, children, t }) {
+function Section({
+  title,
+  count,
+  defaultOpen = true,
+  accent,
+  children,
+  t,
+  action,
+}) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ marginBottom: "0.5rem" }}>
-      <button
-        onClick={() => setOpen((o) => !o)}
+      <div
         style={{
-          width: "100%",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
           padding: "0.5rem 0",
           marginBottom: open ? "0.5rem" : 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-            {title}
-          </span>
-          {count != null && (
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "1px 7px",
-                borderRadius: 10,
-                background: accent ?? t.accentLight,
-                color: accent ? "#fff" : t.accentText,
-              }}
-            >
-              {count}
-            </span>
-          )}
-        </div>
-        <span
+        <button
+          onClick={() => setOpen((o) => !o)}
           style={{
-            fontSize: 13,
-            color: t.textSub,
-            transition: "transform 0.2s",
-            display: "inline-block",
-            transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            flex: 1,
           }}
         >
-          ▼
-        </span>
-      </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
+              {title}
+            </span>
+            {count != null && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "1px 7px",
+                  borderRadius: 10,
+                  background: accent ?? t.accentLight,
+                  color: accent ? "#fff" : t.accentText,
+                }}
+              >
+                {count}
+              </span>
+            )}
+          </div>
+          <span
+            style={{
+              fontSize: 13,
+              color: t.textSub,
+              transition: "transform 0.2s",
+              display: "inline-block",
+              transform: open ? "rotate(0deg)" : "rotate(-90deg)",
+              marginLeft: 4,
+            }}
+          >
+            ▼
+          </span>
+        </button>
+        {action && <div>{action}</div>}
+      </div>
       {open && children}
     </div>
   );
@@ -161,7 +180,7 @@ export default function DashboardPage() {
       },
     });
   }
-
+  const [showCalendar, setShowCalendar] = useState(false);
   const upcomingCount = upcomingEvents.length + upcomingTournamentRounds.length;
   // Merge and sort all upcoming items by date
   const allUpcoming = [
@@ -304,24 +323,181 @@ export default function DashboardPage() {
           title="Upcoming"
           count={upcomingCount}
           accent={t.accent}
-          defaultOpen={false}
+          defaultOpen
           t={t}
+          action={
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCalendar((s) => !s);
+              }}
+              style={{
+                padding: "3px 10px",
+                background: showCalendar ? t.accent : t.card,
+                color: showCalendar ? "#fff" : t.textSub,
+                border: `1px solid ${showCalendar ? t.accent : t.border}`,
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {showCalendar ? "📅 List" : "📅 Calendar"}
+            </button>
+          }
         >
-          {allUpcoming.map((item) => {
-            const d = item._date;
-            const nzFmt = new Intl.DateTimeFormat("en-NZ", {
-              timeZone: "Pacific/Auckland",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            });
-            const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
+          {showCalendar ? (
+            <MiniCalendar items={allUpcoming} t={t} />
+          ) : (
+            allUpcoming.map((item) => {
+              const d = item._date;
+              const nzFmt = new Intl.DateTimeFormat("en-NZ", {
+                timeZone: "Pacific/Auckland",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              });
+              const isToday = nzFmt.format(new Date()) === nzFmt.format(d);
 
-            if (item._type === "tournament") {
-              const tr = item;
+              if (item._type === "tournament") {
+                const tr = item;
+                return (
+                  <div
+                    key={tr.id}
+                    style={{
+                      background: t.card,
+                      borderRadius: 10,
+                      padding: "0.875rem 1rem",
+                      marginBottom: 8,
+                      boxShadow: t.shadow,
+                      border: isToday
+                        ? `2px solid ${t.accent}`
+                        : `1px solid ${t.border}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: t.accentLight,
+                          color: t.accentText,
+                          padding: "1px 6px",
+                          borderRadius: 4,
+                        }}
+                      >
+                        🏆 Tournament
+                      </span>
+                      {isToday && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: t.successLight,
+                            color: t.success,
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Today
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      style={{ fontWeight: 700, fontSize: 15, color: t.text }}
+                    >
+                      {tr.tournaments?.name}
+                    </div>
+                    <div
+                      style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}
+                    >
+                      Round {tr.round_number} · {tr.courses?.name ?? "TBC"}
+                      {tr.layouts ? ` · ${tr.layouts.layout_name}` : ""}
+                    </div>
+                    <div
+                      style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
+                    >
+                      {d.toLocaleDateString("en-NZ", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        timeZone: "Pacific/Auckland",
+                      })}
+                      {" · "}
+                      {d.toLocaleTimeString("en-NZ", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Pacific/Auckland",
+                      })}
+                    </div>
+                    {(() => {
+                      const nzFmt2 = new Intl.DateTimeFormat("en-NZ", {
+                        timeZone: "Pacific/Auckland",
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      });
+                      const todayNZ = nzFmt2.format(new Date());
+                      const roundDateNZ = nzFmt2.format(d);
+                      const isRoundToday = todayNZ === roundDateNZ;
+                      const hasSetup = tr.course_id && tr.layout_id;
+                      const disabled = !isRoundToday || !hasSetup;
+                      const reason = !hasSetup
+                        ? "No course or layout assigned yet"
+                        : !isRoundToday
+                          ? `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Auckland" })}`
+                          : "";
+                      return (
+                        <div style={{ marginTop: 10 }}>
+                          <button
+                            style={{
+                              width: "100%",
+                              padding: "0.625rem",
+                              background: disabled ? t.textMuted : t.accent,
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: 8,
+                              fontWeight: 700,
+                              fontSize: 14,
+                              cursor: disabled ? "not-allowed" : "pointer",
+                              opacity: disabled ? 0.6 : 1,
+                            }}
+                            disabled={disabled}
+                            onClick={() => startTournamentRound(tr)}
+                          >
+                            🥏 Start tournament round
+                          </button>
+                          {reason && (
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: t.textMuted,
+                                textAlign: "center",
+                                marginTop: 4,
+                              }}
+                            >
+                              {reason}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                );
+              }
+
+              // Regular event
+              const ev = item;
               return (
                 <div
-                  key={tr.id}
+                  key={ev.id}
                   style={{
                     background: t.card,
                     borderRadius: 10,
@@ -345,13 +521,13 @@ export default function DashboardPage() {
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        background: t.accentLight,
-                        color: t.accentText,
+                        background: t.warnLight,
+                        color: t.warn,
                         padding: "1px 6px",
                         borderRadius: 4,
                       }}
                     >
-                      🏆 Tournament
+                      📅 Event
                     </span>
                     {isToday && (
                       <span
@@ -369,12 +545,16 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-                    {tr.tournaments?.name}
+                    {ev.name}
                   </div>
-                  <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
-                    Round {tr.round_number} · {tr.courses?.name ?? "TBC"}
-                    {tr.layouts ? ` · ${tr.layouts.layout_name}` : ""}
-                  </div>
+                  {ev.courses && (
+                    <div
+                      style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}
+                    >
+                      {ev.courses.name}
+                      {ev.layouts ? ` · ${ev.layouts.layout_name}` : ""}
+                    </div>
+                  )}
                   <div
                     style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
                   >
@@ -391,151 +571,22 @@ export default function DashboardPage() {
                       timeZone: "Pacific/Auckland",
                     })}
                   </div>
-                  {(() => {
-                    const nzFmt2 = new Intl.DateTimeFormat("en-NZ", {
-                      timeZone: "Pacific/Auckland",
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                    });
-                    const todayNZ = nzFmt2.format(new Date());
-                    const roundDateNZ = nzFmt2.format(d);
-                    const isRoundToday = todayNZ === roundDateNZ;
-                    const hasSetup = tr.course_id && tr.layout_id;
-                    const disabled = !isRoundToday || !hasSetup;
-                    const reason = !hasSetup
-                      ? "No course or layout assigned yet"
-                      : !isRoundToday
-                        ? `Available on ${d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "Pacific/Auckland" })}`
-                        : "";
-                    return (
-                      <div style={{ marginTop: 10 }}>
-                        <button
-                          style={{
-                            width: "100%",
-                            padding: "0.625rem",
-                            background: disabled ? t.textMuted : t.accent,
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 8,
-                            fontWeight: 700,
-                            fontSize: 14,
-                            cursor: disabled ? "not-allowed" : "pointer",
-                            opacity: disabled ? 0.6 : 1,
-                          }}
-                          disabled={disabled}
-                          onClick={() => startTournamentRound(tr)}
-                        >
-                          🥏 Start tournament round
-                        </button>
-                        {reason && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: t.textMuted,
-                              textAlign: "center",
-                              marginTop: 4,
-                            }}
-                          >
-                            {reason}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            }
-
-            // Regular event
-            const ev = item;
-            return (
-              <div
-                key={ev.id}
-                style={{
-                  background: t.card,
-                  borderRadius: 10,
-                  padding: "0.875rem 1rem",
-                  marginBottom: 8,
-                  boxShadow: t.shadow,
-                  border: isToday
-                    ? `2px solid ${t.accent}`
-                    : `1px solid ${t.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    marginBottom: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: t.warnLight,
-                      color: t.warn,
-                      padding: "1px 6px",
-                      borderRadius: 4,
-                    }}
-                  >
-                    📅 Event
-                  </span>
-                  {isToday && (
-                    <span
+                  {ev.description && (
+                    <div
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: t.successLight,
-                        color: t.success,
-                        padding: "1px 6px",
-                        borderRadius: 4,
+                        fontSize: 13,
+                        color: t.textSub,
+                        marginTop: 6,
+                        lineHeight: 1.5,
                       }}
                     >
-                      Today
-                    </span>
+                      {ev.description}
+                    </div>
                   )}
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: t.text }}>
-                  {ev.name}
-                </div>
-                {ev.courses && (
-                  <div style={{ fontSize: 13, color: t.textSub, marginTop: 2 }}>
-                    {ev.courses.name}
-                    {ev.layouts ? ` · ${ev.layouts.layout_name}` : ""}
-                  </div>
-                )}
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>
-                  {d.toLocaleDateString("en-NZ", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    timeZone: "Pacific/Auckland",
-                  })}
-                  {" · "}
-                  {d.toLocaleTimeString("en-NZ", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "Pacific/Auckland",
-                  })}
-                </div>
-                {ev.description && (
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: t.textSub,
-                      marginTop: 6,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {ev.description}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </Section>
       )}
 
@@ -620,6 +671,336 @@ export default function DashboardPage() {
       )}
     </Layout>
   );
+  function MiniCalendar({ items, t }) {
+    const [currentMonth, setCurrentMonth] = useState(() => {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [selectedDay, setSelectedDay] = useState(null);
+
+    const NZ_TZ = "Pacific/Auckland";
+    function toNZDate(str) {
+      return new Date(
+        new Date(str).toLocaleString("en-US", { timeZone: NZ_TZ }),
+      );
+    }
+
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayNZ = toNZDate(new Date().toISOString());
+
+    // Map items to NZ dates
+    const itemsByDay = {};
+    for (const item of items) {
+      const dateStr =
+        item._type === "tournament" ? item.scheduled_date : item.event_date;
+      const d = toNZDate(dateStr);
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      const day = d.getDate();
+      if (!itemsByDay[day]) itemsByDay[day] = [];
+      itemsByDay[day].push(item);
+    }
+
+    const selectedItems = selectedDay ? (itemsByDay[selectedDay] ?? []) : [];
+    const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
+
+    return (
+      <div
+        style={{
+          background: t.card,
+          borderRadius: 12,
+          padding: "0.875rem",
+          marginBottom: 8,
+          boxShadow: t.shadow,
+        }}
+      >
+        {/* Month nav */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <button
+            onClick={() => {
+              setCurrentMonth(new Date(year, month - 1, 1));
+              setSelectedDay(null);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: t.textSub,
+              cursor: "pointer",
+              fontSize: 18,
+              padding: "0 8px",
+            }}
+          >
+            ‹
+          </button>
+          <span style={{ fontWeight: 700, fontSize: 14, color: t.text }}>
+            {currentMonth.toLocaleDateString("en-NZ", {
+              month: "long",
+              year: "numeric",
+            })}
+          </span>
+          <button
+            onClick={() => {
+              setCurrentMonth(new Date(year, month + 1, 1));
+              setSelectedDay(null);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: t.textSub,
+              cursor: "pointer",
+              fontSize: 18,
+              padding: "0 8px",
+            }}
+          >
+            ›
+          </button>
+        </div>
+
+        {/* Day headers */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            marginBottom: 4,
+          }}
+        >
+          {dayNames.map((d, i) => (
+            <div
+              key={i}
+              style={{
+                textAlign: "center",
+                fontSize: 11,
+                fontWeight: 600,
+                color: t.textMuted,
+              }}
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Day grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            gap: 2,
+          }}
+        >
+          {Array.from({ length: firstDay }).map((_, i) => (
+            <div key={`e${i}`} />
+          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+            const dayItems = itemsByDay[day] ?? [];
+            const isToday =
+              todayNZ.getDate() === day &&
+              todayNZ.getMonth() === month &&
+              todayNZ.getFullYear() === year;
+            const isSelected = selectedDay === day;
+            const hasTournament = dayItems.some(
+              (i) => i._type === "tournament",
+            );
+            const hasEvent = dayItems.some((i) => i._type === "event");
+
+            return (
+              <div
+                key={day}
+                onClick={() => setSelectedDay(isSelected ? null : day)}
+                style={{
+                  aspectRatio: "1",
+                  borderRadius: 6,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: dayItems.length > 0 ? "pointer" : "default",
+                  background: isSelected
+                    ? t.accent
+                    : isToday
+                      ? t.accentLight
+                      : "transparent",
+                  border:
+                    isToday && !isSelected
+                      ? `1.5px solid ${t.accent}`
+                      : "1.5px solid transparent",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: isToday || isSelected ? 700 : 400,
+                    color: isSelected
+                      ? "#fff"
+                      : isToday
+                        ? t.accentText
+                        : dayItems.length > 0
+                          ? t.text
+                          : t.textMuted,
+                  }}
+                >
+                  {day}
+                </span>
+                {dayItems.length > 0 && (
+                  <div style={{ display: "flex", gap: 2, marginTop: 1 }}>
+                    {hasTournament && (
+                      <div
+                        style={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: "50%",
+                          background: isSelected ? "#fff" : t.accentText,
+                        }}
+                      />
+                    )}
+                    {hasEvent && (
+                      <div
+                        style={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: "50%",
+                          background: isSelected ? "#fff" : t.warn,
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginTop: 8,
+            justifyContent: "center",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: t.accentText,
+              }}
+            />
+            <span style={{ fontSize: 10, color: t.textSub }}>Tournament</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: t.warn,
+              }}
+            />
+            <span style={{ fontSize: 10, color: t.textSub }}>Event</span>
+          </div>
+        </div>
+
+        {/* Selected day items */}
+        {selectedItems.length > 0 && (
+          <div
+            style={{
+              marginTop: 12,
+              borderTop: `1px solid ${t.border}`,
+              paddingTop: 10,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: t.textSub,
+                marginBottom: 8,
+              }}
+            >
+              {new Date(year, month, selectedDay).toLocaleDateString("en-NZ", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+            </div>
+            {selectedItems.map((item, i) => {
+              const isTournament = item._type === "tournament";
+              const dateStr = isTournament
+                ? item.scheduled_date
+                : item.event_date;
+              const time = new Date(dateStr).toLocaleTimeString("en-NZ", {
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: NZ_TZ,
+              });
+              return (
+                <div
+                  key={i}
+                  style={{
+                    padding: "8px 0",
+                    borderBottom:
+                      i < selectedItems.length - 1
+                        ? `1px solid ${t.borderCard}`
+                        : "none",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "1px 6px",
+                        borderRadius: 4,
+                        background: isTournament ? t.accentLight : t.warnLight,
+                        color: isTournament ? t.accentText : t.warn,
+                      }}
+                    >
+                      {isTournament ? "🏆" : "📅"}
+                    </span>
+                    <span style={{ fontSize: 13, color: t.textMuted }}>
+                      {time}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: t.text,
+                      marginTop: 4,
+                    }}
+                  >
+                    {isTournament
+                      ? `${item.tournaments?.name} — Round ${item.round_number}`
+                      : item.name}
+                  </div>
+                  {item.courses && (
+                    <div style={{ fontSize: 12, color: t.textSub }}>
+                      {item.courses.name}
+                      {item.layouts ? ` · ${item.layouts.layout_name}` : ""}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function MiniLeaderboard({ tournament, t, navigate }) {
     const [standings, setStandings] = useState([]);
     const [loading, setLoading] = useState(true);
