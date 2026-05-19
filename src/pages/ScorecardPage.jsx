@@ -39,6 +39,8 @@ export default function ScorecardPage() {
   const [tagResolution, setTagResolution] = useState(null);
   const [confirmingTags, setConfirmingTags] = useState(false);
   const [tagTieInfo, setTagTieInfo] = useState(null);
+  const [teeOrder, setTeeOrder] = useState([]); // player ids in tee order
+  const [initialOrder, setInitialOrder] = useState([]); // randomised starting order
 
   useEffect(() => {
     loadRound();
@@ -73,6 +75,21 @@ export default function ScorecardPage() {
       .eq("round_id", roundId);
     const playerList = rp?.map((r) => r.profiles) ?? [];
     setPlayers(playerList);
+
+    // Set randomised initial order — persist so it survives reload
+    const savedOrder = localStorage.getItem(`teeOrder:${roundId}`);
+    if (savedOrder) {
+      const order = JSON.parse(savedOrder);
+      setInitialOrder(order);
+      setTeeOrder(order);
+    } else {
+      const shuffled = [...playerList]
+        .sort(() => Math.random() - 0.5)
+        .map((p) => p.id);
+      localStorage.setItem(`teeOrder:${roundId}`, JSON.stringify(shuffled));
+      setInitialOrder(shuffled);
+      setTeeOrder(shuffled);
+    }
 
     const { data: existingScores } = await supabase
       .from("scores")
@@ -144,6 +161,34 @@ export default function ScorecardPage() {
     });
   }
 
+  // ── Calculate tee order for current hole ────────────────
+  function calcTeeOrder(holeIndex) {
+    if (holeIndex === 0 || initialOrder.length === 0) return initialOrder;
+    const fullOrder = [...playOrder, ...playoffHoles];
+
+    // Get all previous holes in play order
+    const prevHoles = fullOrder.slice(0, holeIndex);
+
+    // Sort players by: previous hole score, then hole before that, etc.
+    const playerIds = [...initialOrder];
+
+    return playerIds.sort((aId, bId) => {
+      // Compare from most recent hole backwards
+      for (let i = prevHoles.length - 1; i >= 0; i--) {
+        const h = prevHoles[i];
+        const aScore = savedScores[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
+        const bScore = savedScores[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
+
+        // Unsaved scores — treat as equal
+        if (aScore == null && bScore == null) continue;
+        if (aScore == null) return 1;
+        if (bScore == null) return -1;
+        if (aScore !== bScore) return aScore - bScore;
+      }
+      // Fully tied — maintain current order
+      return 0;
+    });
+  }
   function goToHole(index) {
     const fullOrder = [...playOrder, ...playoffHoles];
     const hole = fullOrder[index];
@@ -160,6 +205,9 @@ export default function ScorecardPage() {
       });
     }
     setCurrentHoleIndex(index);
+    // Recalculate tee order for the new hole
+    // Use setTimeout to ensure savedScores state has updated
+    setTimeout(() => setTeeOrder(calcTeeOrder(index)), 0);
   }
   async function saveHole(nextIndex) {
     if (!isOwner) return;
@@ -180,7 +228,7 @@ export default function ScorecardPage() {
     await supabase.from("scores").upsert(upserts, {
       onConflict: "round_id,player_id,hole_number,loop",
     });
-    // Mark these scores as saved
+
     setSavedScores((prev) => {
       const next = { ...prev };
       for (const u of upserts) {
@@ -188,6 +236,7 @@ export default function ScorecardPage() {
       }
       return next;
     });
+
     setSaving(false);
     if (nextIndex !== undefined) goToHole(nextIndex);
   }
@@ -375,6 +424,7 @@ export default function ScorecardPage() {
       .update({ status: "complete" })
       .eq("id", roundId);
     setConfirmingTags(false);
+    localStorage.removeItem(`teeOrder:${roundId}`);
     scorecardClear(roundId);
     cacheClear("bagtags:list"); // force fresh fetch after tag changes
     window.location.href = "/history";
@@ -659,9 +709,15 @@ export default function ScorecardPage() {
               </div>
             </div>
 
-            {/* Score entry per player */}
+            {/* Score entry per player — shown in tee order */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {players.map((player, playerIdx) => {
+              {(teeOrder.length > 0
+                ? teeOrder
+                    .map((id) => players.find((p) => p.id === id))
+                    .filter(Boolean)
+                : players
+              ).map((player, teeIdx) => {
+                const playerIdx = players.indexOf(player);
                 const strokes =
                   getScore(player.id, hole.holeNumber, hole.loop) ?? hole.par;
                 const parRel = strokes - hole.par;
@@ -696,16 +752,58 @@ export default function ScorecardPage() {
                     key={player.id}
                     style={{ display: "flex", alignItems: "center", gap: 8 }}
                   >
-                    <span
+                    <div
                       style={{
                         flex: 1,
-                        fontSize: 15,
-                        fontWeight: 600,
-                        color: dm.text,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
                       }}
                     >
-                      {player.nickname || player.full_name}
-                    </span>
+                      {!isComplete && currentHoleIndex > 0 && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            background: teeIdx === 0 ? "#1d6b3a" : dm.input,
+                            color: teeIdx === 0 ? "#fff" : dm.sub,
+                            border: `1.5px solid ${teeIdx === 0 ? "#1d6b3a" : dm.border}`,
+                          }}
+                        >
+                          {teeIdx + 1}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 600,
+                          color: dm.text,
+                        }}
+                      >
+                        {player.nickname || player.full_name}
+                      </span>
+                      {teeIdx === 0 && !isComplete && currentHoleIndex > 0 && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: "#1d6b3a",
+                            fontWeight: 700,
+                            background: "#f0faf4",
+                            padding: "1px 5px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          tees first
+                        </span>
+                      )}
+                    </div>
                     {isComplete ? (
                       // View only — no controls
                       <div
@@ -1514,6 +1612,7 @@ export default function ScorecardPage() {
                     .from("rounds")
                     .update({ status: "complete" })
                     .eq("id", roundId);
+                  localStorage.removeItem(`teeOrder:${roundId}`);
                   scorecardClear(roundId);
                   window.location.href = "/history";
                 }}
