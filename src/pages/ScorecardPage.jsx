@@ -880,19 +880,44 @@ export default function ScorecardPage() {
                         >
                           {strokes}
                         </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            minWidth: 28,
-                            textAlign: "center",
-                            ...getRelStyle(parRel, d),
-                          }}
-                        >
-                          {formatRelativeToPar(parRel)}
-                        </span>
+                        {(() => {
+                          const playerRows = fullOrder
+                            .slice(0, currentHoleIndex + 1)
+                            .map((h) => ({
+                              hole_number: h.holeNumber,
+                              loop: h.loop,
+                              strokes:
+                                savedScores[
+                                  scoreKey(player.id, h.holeNumber, h.loop)
+                                ] ?? null,
+                            }))
+                            .filter((s) => s.strokes != null);
+                          const { relativeToPar: roundRel } = calcPlayerScore(
+                            playerRows,
+                            parJson,
+                          );
+                          const hasRoundScore = playerRows.length > 0;
+                          return (
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                minWidth: 28,
+                                textAlign: "center",
+                                ...getRelStyle(
+                                  hasRoundScore ? roundRel : parRel,
+                                  d,
+                                ),
+                              }}
+                            >
+                              {hasRoundScore
+                                ? formatRelativeToPar(roundRel)
+                                : formatRelativeToPar(parRel)}
+                            </span>
+                          );
+                        })()}
                         {isMatchplay && matchHoleResult && (
                           <span
                             style={{
@@ -990,19 +1015,44 @@ export default function ScorecardPage() {
                             +
                           </button>
                         </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 700,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            minWidth: 28,
-                            textAlign: "center",
-                            ...getRelStyle(parRel, d),
-                          }}
-                        >
-                          {formatRelativeToPar(parRel)}
-                        </span>
+                        {(() => {
+                          const playerRows = fullOrder
+                            .slice(0, currentHoleIndex + 1)
+                            .map((h) => ({
+                              hole_number: h.holeNumber,
+                              loop: h.loop,
+                              strokes:
+                                savedScores[
+                                  scoreKey(player.id, h.holeNumber, h.loop)
+                                ] ?? null,
+                            }))
+                            .filter((s) => s.strokes != null);
+                          const { relativeToPar: roundRel } = calcPlayerScore(
+                            playerRows,
+                            parJson,
+                          );
+                          const hasRoundScore = playerRows.length > 0;
+                          return (
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                minWidth: 28,
+                                textAlign: "center",
+                                ...getRelStyle(
+                                  hasRoundScore ? roundRel : parRel,
+                                  d,
+                                ),
+                              }}
+                            >
+                              {hasRoundScore
+                                ? formatRelativeToPar(roundRel)
+                                : formatRelativeToPar(parRel)}
+                            </span>
+                          );
+                        })()}
                         {isMatchplay && matchHoleResult && (
                           <span
                             style={{
