@@ -77,18 +77,47 @@ export default function ScorecardPage() {
     setPlayers(playerList);
 
     // Set randomised initial order — persist so it survives reload
-    const savedOrder = localStorage.getItem(`teeOrder:${roundId}`);
+    const savedOrderKey = `teeOrder:${roundId}`;
+    let initialOrderIds;
+    const savedOrder = localStorage.getItem(savedOrderKey);
     if (savedOrder) {
-      const order = JSON.parse(savedOrder);
-      setInitialOrder(order);
-      setTeeOrder(order);
+      initialOrderIds = JSON.parse(savedOrder);
     } else {
-      const shuffled = [...playerList]
+      initialOrderIds = [...playerList]
         .sort(() => Math.random() - 0.5)
         .map((p) => p.id);
-      localStorage.setItem(`teeOrder:${roundId}`, JSON.stringify(shuffled));
-      setInitialOrder(shuffled);
-      setTeeOrder(shuffled);
+      localStorage.setItem(savedOrderKey, JSON.stringify(initialOrderIds));
+    }
+    setInitialOrder(initialOrderIds);
+
+    // Calculate correct tee order for the current hole using existing scores
+    // We need to do this after scoreMap is built
+    // For hole 0 just use initial order, for others calculate
+    const currentHoleIdx = fullOrder.findIndex((h) =>
+      playerList.some(
+        (p) => scoreMap[scoreKey(p.id, h.holeNumber, h.loop)] == null,
+      ),
+    );
+    const resolvedHoleIdx = currentHoleIdx === -1 ? 0 : currentHoleIdx;
+
+    if (resolvedHoleIdx === 0) {
+      setTeeOrder(initialOrderIds);
+    } else {
+      // Calculate tee order for current hole using saved scores
+      const orderedForCurrentHole = [...initialOrderIds].sort((aId, bId) => {
+        for (let i = resolvedHoleIdx - 1; i >= 0; i--) {
+          const h = fullOrder[i];
+          if (!h) continue;
+          const aScore = scoreMap[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
+          const bScore = scoreMap[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
+          if (aScore == null && bScore == null) continue;
+          if (aScore == null) return 1;
+          if (bScore == null) return -1;
+          if (aScore !== bScore) return aScore - bScore;
+        }
+        return 0;
+      });
+      setTeeOrder(orderedForCurrentHole);
     }
 
     const { data: existingScores } = await supabase
@@ -161,35 +190,32 @@ export default function ScorecardPage() {
     });
   }
 
-  // ── Calculate tee order for current hole ────────────────
-  function calcTeeOrder(holeIndex) {
-    if (holeIndex === 0 || initialOrder.length === 0) return initialOrder;
+  function calcTeeOrder(holeIndex, currentSavedScores) {
+    if (holeIndex === 0 || initialOrder.length === 0) return [...initialOrder];
     const fullOrder = [...playOrder, ...playoffHoles];
+    const scores = currentSavedScores ?? savedScores;
 
-    // Get all previous holes in play order
-    const prevHoles = fullOrder.slice(0, holeIndex);
+    // Start from current tee order (preserves relative order for ties)
+    const ordered = [...teeOrder];
 
-    // Sort players by: previous hole score, then hole before that, etc.
-    const playerIds = [...initialOrder];
-
-    return playerIds.sort((aId, bId) => {
-      // Compare from most recent hole backwards
-      for (let i = prevHoles.length - 1; i >= 0; i--) {
-        const h = prevHoles[i];
-        const aScore = savedScores[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
-        const bScore = savedScores[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
-
-        // Unsaved scores — treat as equal
+    // Sort: primary = score on hole just played (holeIndex - 1)
+    // Tiebreaker = score on hole before that, and so on back to hole 1
+    return ordered.sort((aId, bId) => {
+      // Walk back from the most recently completed hole
+      for (let i = holeIndex - 1; i >= 0; i--) {
+        const h = fullOrder[i];
+        if (!h) continue;
+        const aScore = scores[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
+        const bScore = scores[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
         if (aScore == null && bScore == null) continue;
         if (aScore == null) return 1;
         if (bScore == null) return -1;
         if (aScore !== bScore) return aScore - bScore;
       }
-      // Fully tied — maintain current order
       return 0;
     });
   }
-  function goToHole(index) {
+  function goToHole(index, latestSavedScores) {
     const fullOrder = [...playOrder, ...playoffHoles];
     const hole = fullOrder[index];
     if (!hole) return;
@@ -205,9 +231,8 @@ export default function ScorecardPage() {
       });
     }
     setCurrentHoleIndex(index);
-    // Recalculate tee order for the new hole
-    // Use setTimeout to ensure savedScores state has updated
-    setTimeout(() => setTeeOrder(calcTeeOrder(index)), 0);
+    const newOrder = calcTeeOrder(index, latestSavedScores);
+    setTeeOrder(newOrder);
   }
   async function saveHole(nextIndex) {
     if (!isOwner) return;
@@ -229,16 +254,16 @@ export default function ScorecardPage() {
       onConflict: "round_id,player_id,hole_number,loop",
     });
 
-    setSavedScores((prev) => {
-      const next = { ...prev };
-      for (const u of upserts) {
-        next[scoreKey(u.player_id, u.hole_number, u.loop)] = u.strokes;
-      }
-      return next;
-    });
+    // Build updated saved scores synchronously so tee order calc is correct
+    const updatedSavedScores = { ...savedScores };
+    for (const u of upserts) {
+      updatedSavedScores[scoreKey(u.player_id, u.hole_number, u.loop)] =
+        u.strokes;
+    }
+    setSavedScores(updatedSavedScores);
 
     setSaving(false);
-    if (nextIndex !== undefined) goToHole(nextIndex);
+    if (nextIndex !== undefined) goToHole(nextIndex, updatedSavedScores);
   }
 
   function addPlayoffHole() {
@@ -717,7 +742,7 @@ export default function ScorecardPage() {
                     .filter(Boolean)
                 : players
               ).map((player, teeIdx) => {
-                const playerIdx = players.indexOf(player);
+                const playerIdx = players.findIndex((p) => p.id === player.id);
                 const strokes =
                   getScore(player.id, hole.holeNumber, hole.loop) ?? hole.par;
                 const parRel = strokes - hole.par;
