@@ -925,8 +925,8 @@ export default function ScorecardPage() {
                               fontWeight: 700,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: matchHoleResult.bg,
-                              color: matchHoleResult.color,
+                              background: "#666", //matchHoleResult.bg,
+                              color: "#fff", //matchHoleResult.color,
                               minWidth: 36,
                               textAlign: "center",
                             }}
@@ -1060,8 +1060,8 @@ export default function ScorecardPage() {
                               fontWeight: 700,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: matchHoleResult.bg,
-                              color: matchHoleResult.color,
+                              background: "#666", //matchHoleResult.bg,
+                              color: "#fff", //matchHoleResult.color,
                               minWidth: 36,
                               textAlign: "center",
                             }}
