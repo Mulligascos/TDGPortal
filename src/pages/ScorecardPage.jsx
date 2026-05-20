@@ -192,28 +192,55 @@ export default function ScorecardPage() {
 
   function calcTeeOrder(holeIndex, currentSavedScores) {
     if (holeIndex === 0 || initialOrder.length === 0) return [...initialOrder];
+
     const fullOrder = [...playOrder, ...playoffHoles];
     const scores = currentSavedScores ?? savedScores;
 
-    // Start from current tee order (preserves relative order for ties)
-    const ordered = [...teeOrder];
+    // Start from CURRENT tee order — this preserves relative positions for ties
+    // Current tee order is the order players teed off on THIS hole
+    // We want to produce the order for the NEXT hole
+    const currentOrder =
+      teeOrder.length > 0 ? [...teeOrder] : [...initialOrder];
 
-    // Sort: primary = score on hole just played (holeIndex - 1)
-    // Tiebreaker = score on hole before that, and so on back to hole 1
-    return ordered.sort((aId, bId) => {
-      // Walk back from the most recently completed hole
+    // Build score arrays for each player across all played holes
+    // Index 0 = most recently played hole (holeIndex - 1)
+    const holeScores = {};
+    for (const playerId of currentOrder) {
+      holeScores[playerId] = [];
       for (let i = holeIndex - 1; i >= 0; i--) {
         const h = fullOrder[i];
-        if (!h) continue;
-        const aScore = scores[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
-        const bScore = scores[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
-        if (aScore == null && bScore == null) continue;
-        if (aScore == null) return 1;
-        if (bScore == null) return -1;
-        if (aScore !== bScore) return aScore - bScore;
+        if (!h) {
+          holeScores[playerId].push(null);
+          continue;
+        }
+        holeScores[playerId].push(
+          scores[scoreKey(playerId, h.holeNumber, h.loop)] ?? null,
+        );
       }
-      return 0;
+    }
+
+    // Stable sort: compare hole by hole from most recent backwards
+    // When equal at all holes, preserve current order (stable)
+    const indexed = currentOrder.map((id, idx) => ({ id, idx }));
+
+    indexed.sort((a, b) => {
+      const aScores = holeScores[a.id];
+      const bScores = holeScores[b.id];
+
+      for (let i = 0; i < aScores.length; i++) {
+        const aS = aScores[i];
+        const bS = bScores[i];
+        if (aS == null && bS == null) continue;
+        if (aS == null) return 1; // no score = goes last
+        if (bS == null) return -1;
+        if (aS !== bS) return aS - bS; // lower score first
+      }
+
+      // All holes tied — preserve current tee order (stable by original index)
+      return a.idx - b.idx;
     });
+
+    return indexed.map((item) => item.id);
   }
   function goToHole(index, latestSavedScores) {
     const fullOrder = [...playOrder, ...playoffHoles];
