@@ -869,7 +869,7 @@ export default function ScorecardPage() {
                           style={{
                             width: 44,
                             height: 44,
-                            borderRadius: 8,
+                            borderRadius: 18,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -901,7 +901,7 @@ export default function ScorecardPage() {
                           return (
                             <span
                               style={{
-                                fontSize: 12,
+                                fontSize: 14,
                                 fontWeight: 700,
                                 padding: "2px 6px",
                                 borderRadius: 4,
@@ -975,7 +975,7 @@ export default function ScorecardPage() {
                             style={{
                               width: 44,
                               height: 44,
-                              borderRadius: 8,
+                              borderRadius: 18,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1035,7 +1035,7 @@ export default function ScorecardPage() {
                           return (
                             <span
                               style={{
-                                fontSize: 12,
+                                fontSize: 14,
                                 fontWeight: 700,
                                 padding: "2px 6px",
                                 borderRadius: 4,
