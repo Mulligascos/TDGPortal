@@ -875,7 +875,8 @@ export default function ScorecardPage() {
                             justifyContent: "center",
                             fontSize: 20,
                             fontWeight: 700,
-                            ...getRelStyle(parRel, d),
+                            background: d ? "#2a2a2a" : "#e5e7eb",
+                            color: d ? "#aaaaaa" : "#6b7280",
                           }}
                         >
                           {strokes}
@@ -906,10 +907,8 @@ export default function ScorecardPage() {
                                 borderRadius: 4,
                                 minWidth: 28,
                                 textAlign: "center",
-                                ...getRelStyle(
-                                  hasRoundScore ? roundRel : parRel,
-                                  d,
-                                ),
+                                background: d ? "#2a2a2a" : "#e5e7eb",
+                                color: d ? "#aaaaaa" : "#6b7280",
                               }}
                             >
                               {hasRoundScore
@@ -925,8 +924,8 @@ export default function ScorecardPage() {
                               fontWeight: 700,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: "#666", //matchHoleResult.bg,
-                              color: "#fff", //matchHoleResult.color,
+                              background: matchHoleResult.bg,
+                              color: matchHoleResult.color,
                               minWidth: 36,
                               textAlign: "center",
                             }}
@@ -982,7 +981,8 @@ export default function ScorecardPage() {
                               justifyContent: "center",
                               fontSize: 20,
                               fontWeight: 700,
-                              ...getRelStyle(parRel, d),
+                              background: d ? "#2a2a2a" : "#e5e7eb",
+                              color: d ? "#aaaaaa" : "#6b7280",
                             }}
                           >
                             {strokes}
@@ -1041,10 +1041,8 @@ export default function ScorecardPage() {
                                 borderRadius: 4,
                                 minWidth: 28,
                                 textAlign: "center",
-                                ...getRelStyle(
-                                  hasRoundScore ? roundRel : parRel,
-                                  d,
-                                ),
+                                background: d ? "#2a2a2a" : "#e5e7eb",
+                                color: d ? "#aaaaaa" : "#6b7280",
                               }}
                             >
                               {hasRoundScore
@@ -1060,8 +1058,8 @@ export default function ScorecardPage() {
                               fontWeight: 700,
                               padding: "2px 6px",
                               borderRadius: 4,
-                              background: "#666", //matchHoleResult.bg,
-                              color: "#fff", //matchHoleResult.color,
+                              background: matchHoleResult.bg,
+                              color: matchHoleResult.color,
                               minWidth: 36,
                               textAlign: "center",
                             }}
