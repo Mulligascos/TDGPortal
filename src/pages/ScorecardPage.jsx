@@ -875,8 +875,8 @@ export default function ScorecardPage() {
                             justifyContent: "center",
                             fontSize: 20,
                             fontWeight: 700,
-                            background: d ? "#2a2a2a" : "#e5e7eb",
-                            color: d ? "#aaaaaa" : "#6b7280",
+                            background: d ? "#e5e7eb" : "#2a2a2a",
+                            color: d ? "#6b7280" : "#aaaaaa",
                           }}
                         >
                           {strokes}
@@ -907,8 +907,8 @@ export default function ScorecardPage() {
                                 borderRadius: 4,
                                 minWidth: 28,
                                 textAlign: "center",
-                                background: d ? "#2a2a2a" : "#e5e7eb",
-                                color: d ? "#aaaaaa" : "#6b7280",
+                                background: d ? "#e5e7eb" : "#2a2a2a",
+                                color: d ? "#6b7280" : "#aaaaaa",
                               }}
                             >
                               {hasRoundScore
@@ -981,8 +981,8 @@ export default function ScorecardPage() {
                               justifyContent: "center",
                               fontSize: 20,
                               fontWeight: 700,
-                              background: d ? "#2a2a2a" : "#e5e7eb",
-                              color: d ? "#aaaaaa" : "#6b7280",
+                              background: d ? "#e5e7eb" : "#2a2a2a",
+                              color: d ? "#6b7280" : "#aaaaaa",
                             }}
                           >
                             {strokes}
@@ -1041,8 +1041,8 @@ export default function ScorecardPage() {
                                 borderRadius: 4,
                                 minWidth: 28,
                                 textAlign: "center",
-                                background: d ? "#2a2a2a" : "#e5e7eb",
-                                color: d ? "#aaaaaa" : "#6b7280",
+                                background: d ? "#e5e7eb" : "#2a2a2a",
+                                color: d ? "#6b7280" : "#aaaaaa",
                               }}
                             >
                               {hasRoundScore
