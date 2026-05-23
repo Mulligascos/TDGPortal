@@ -23,8 +23,8 @@ export default function ScorecardPage() {
   const [round, setRound] = useState(null);
   const [layout, setLayout] = useState(null);
   const [players, setPlayers] = useState([]);
-  const [scores, setScores] = useState({}); // live editing state
-  const [savedScores, setSavedScores] = useState({}); // confirmed saved to DB
+  const [scores, setScores] = useState({});
+  const [savedScores, setSavedScores] = useState({});
   const [playOrder, setPlayOrder] = useState([]);
   const [currentHoleIndex, setCurrentHoleIndex] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -39,8 +39,8 @@ export default function ScorecardPage() {
   const [tagResolution, setTagResolution] = useState(null);
   const [confirmingTags, setConfirmingTags] = useState(false);
   const [tagTieInfo, setTagTieInfo] = useState(null);
-  const [teeOrder, setTeeOrder] = useState([]); // player ids in tee order
-  const [initialOrder, setInitialOrder] = useState([]); // randomised starting order
+  const [teeOrder, setTeeOrder] = useState([]);
+  const [initialOrder, setInitialOrder] = useState([]);
 
   useEffect(() => {
     loadRound();
@@ -76,50 +76,7 @@ export default function ScorecardPage() {
     const playerList = rp?.map((r) => r.profiles) ?? [];
     setPlayers(playerList);
 
-    // Set randomised initial order — persist so it survives reload
-    const savedOrderKey = `teeOrder:${roundId}`;
-    let initialOrderIds;
-    const savedOrder = localStorage.getItem(savedOrderKey);
-    if (savedOrder) {
-      initialOrderIds = JSON.parse(savedOrder);
-    } else {
-      initialOrderIds = [...playerList]
-        .sort(() => Math.random() - 0.5)
-        .map((p) => p.id);
-      localStorage.setItem(savedOrderKey, JSON.stringify(initialOrderIds));
-    }
-    setInitialOrder(initialOrderIds);
-
-    // Calculate correct tee order for the current hole using existing scores
-    // We need to do this after scoreMap is built
-    // For hole 0 just use initial order, for others calculate
-    const currentHoleIdx = fullOrder.findIndex((h) =>
-      playerList.some(
-        (p) => scoreMap[scoreKey(p.id, h.holeNumber, h.loop)] == null,
-      ),
-    );
-    const resolvedHoleIdx = currentHoleIdx === -1 ? 0 : currentHoleIdx;
-
-    if (resolvedHoleIdx === 0) {
-      setTeeOrder(initialOrderIds);
-    } else {
-      // Calculate tee order for current hole using saved scores
-      const orderedForCurrentHole = [...initialOrderIds].sort((aId, bId) => {
-        for (let i = resolvedHoleIdx - 1; i >= 0; i--) {
-          const h = fullOrder[i];
-          if (!h) continue;
-          const aScore = scoreMap[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
-          const bScore = scoreMap[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
-          if (aScore == null && bScore == null) continue;
-          if (aScore == null) return 1;
-          if (bScore == null) return -1;
-          if (aScore !== bScore) return aScore - bScore;
-        }
-        return 0;
-      });
-      setTeeOrder(orderedForCurrentHole);
-    }
-
+    // ── Fetch scores FIRST so scoreMap is available for everything below ──
     const { data: existingScores } = await supabase
       .from("scores")
       .select("*")
@@ -134,7 +91,6 @@ export default function ScorecardPage() {
     // Restore any unsaved local scores (e.g. after browser close mid-hole)
     const cached = scorecardLoad(roundId);
     if (cached?.scores) {
-      // Merge: DB scores are the baseline, local scores override for unsaved holes
       const merged = { ...scoreMap, ...cached.scores };
       setScores(merged);
       console.log(
@@ -145,7 +101,8 @@ export default function ScorecardPage() {
     } else {
       setScores(scoreMap);
     }
-    // Detect stored playoff holes
+
+    // ── Detect stored playoff holes ──
     const maxPlayOrder = Math.max(
       0,
       ...(existingScores ?? []).map((s) => s.play_order),
@@ -164,13 +121,49 @@ export default function ScorecardPage() {
     }
     setPlayoffHoles(extraHoles);
 
+    // ── Now fullOrder is fully constructed, safe to use scoreMap ──
     const fullOrder = [...order, ...extraHoles];
+
     const firstIncomplete = fullOrder.findIndex((h) =>
       playerList.some(
         (p) => scoreMap[scoreKey(p.id, h.holeNumber, h.loop)] == null,
       ),
     );
-    setCurrentHoleIndex(firstIncomplete === -1 ? 0 : firstIncomplete);
+    const resolvedHoleIdx = firstIncomplete === -1 ? 0 : firstIncomplete;
+    setCurrentHoleIndex(resolvedHoleIdx);
+
+    // ── Tee order ──
+    const savedOrderKey = `teeOrder:${roundId}`;
+    let initialOrderIds;
+    const savedOrder = localStorage.getItem(savedOrderKey);
+    if (savedOrder) {
+      initialOrderIds = JSON.parse(savedOrder);
+    } else {
+      initialOrderIds = [...playerList]
+        .sort(() => Math.random() - 0.5)
+        .map((p) => p.id);
+      localStorage.setItem(savedOrderKey, JSON.stringify(initialOrderIds));
+    }
+    setInitialOrder(initialOrderIds);
+
+    if (resolvedHoleIdx === 0) {
+      setTeeOrder(initialOrderIds);
+    } else {
+      const orderedForCurrentHole = [...initialOrderIds].sort((aId, bId) => {
+        for (let i = resolvedHoleIdx - 1; i >= 0; i--) {
+          const h = fullOrder[i];
+          if (!h) continue;
+          const aScore = scoreMap[scoreKey(aId, h.holeNumber, h.loop)] ?? null;
+          const bScore = scoreMap[scoreKey(bId, h.holeNumber, h.loop)] ?? null;
+          if (aScore == null && bScore == null) continue;
+          if (aScore == null) return 1;
+          if (bScore == null) return -1;
+          if (aScore !== bScore) return aScore - bScore;
+        }
+        return 0;
+      });
+      setTeeOrder(orderedForCurrentHole);
+    }
   }
 
   function scoreKey(playerId, holeNumber, loop) {
@@ -184,7 +177,6 @@ export default function ScorecardPage() {
   function updateScore(playerId, holeNumber, loop, strokes) {
     setScores((prev) => {
       const next = { ...prev, [scoreKey(playerId, holeNumber, loop)]: strokes };
-      // Persist to localStorage immediately on every change
       scorecardSave(roundId, { scores: next, currentHoleIndex });
       return next;
     });
@@ -196,14 +188,9 @@ export default function ScorecardPage() {
     const fullOrder = [...playOrder, ...playoffHoles];
     const scores = currentSavedScores ?? savedScores;
 
-    // Start from CURRENT tee order — this preserves relative positions for ties
-    // Current tee order is the order players teed off on THIS hole
-    // We want to produce the order for the NEXT hole
     const currentOrder =
       teeOrder.length > 0 ? [...teeOrder] : [...initialOrder];
 
-    // Build score arrays for each player across all played holes
-    // Index 0 = most recently played hole (holeIndex - 1)
     const holeScores = {};
     for (const playerId of currentOrder) {
       holeScores[playerId] = [];
@@ -219,8 +206,6 @@ export default function ScorecardPage() {
       }
     }
 
-    // Stable sort: compare hole by hole from most recent backwards
-    // When equal at all holes, preserve current order (stable)
     const indexed = currentOrder.map((id, idx) => ({ id, idx }));
 
     indexed.sort((a, b) => {
@@ -231,17 +216,17 @@ export default function ScorecardPage() {
         const aS = aScores[i];
         const bS = bScores[i];
         if (aS == null && bS == null) continue;
-        if (aS == null) return 1; // no score = goes last
+        if (aS == null) return 1;
         if (bS == null) return -1;
-        if (aS !== bS) return aS - bS; // lower score first
+        if (aS !== bS) return aS - bS;
       }
 
-      // All holes tied — preserve current tee order (stable by original index)
       return a.idx - b.idx;
     });
 
     return indexed.map((item) => item.id);
   }
+
   function goToHole(index, latestSavedScores) {
     const fullOrder = [...playOrder, ...playoffHoles];
     const hole = fullOrder[index];
@@ -261,6 +246,7 @@ export default function ScorecardPage() {
     const newOrder = calcTeeOrder(index, latestSavedScores);
     setTeeOrder(newOrder);
   }
+
   async function saveHole(nextIndex) {
     if (!isOwner) return;
     setSaving(true);
@@ -281,7 +267,6 @@ export default function ScorecardPage() {
       onConflict: "round_id,player_id,hole_number,loop",
     });
 
-    // Build updated saved scores synchronously so tee order calc is correct
     const updatedSavedScores = { ...savedScores };
     for (const u of upserts) {
       updatedSavedScores[scoreKey(u.player_id, u.hole_number, u.loop)] =
@@ -309,6 +294,7 @@ export default function ScorecardPage() {
     setPlayoffHoles((prev) => [...prev, newHole]);
     goToHole(fullOrder.length);
   }
+
   async function handleFinishWithTags() {
     setFinishing(true);
     await saveHole();
@@ -382,7 +368,6 @@ export default function ScorecardPage() {
         return;
       }
 
-      // No changes needed
       console.log("no tag changes — finishing normally");
     }
 
@@ -392,7 +377,7 @@ export default function ScorecardPage() {
       .eq("id", roundId);
     navigate("/history");
   }
-  // ── Bag tag resolution ──────────────────────────────────
+
   async function resolveTagsAfterRound(fullOrder, parJson) {
     if (!round.play_for_tags) return null;
 
@@ -410,7 +395,7 @@ export default function ScorecardPage() {
         .map((h) => ({
           hole_number: h.holeNumber,
           loop: h.loop,
-          strokes: savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null, // ← use savedScores
+          strokes: savedScores[scoreKey(p.id, h.holeNumber, h.loop)] ?? null,
         }))
         .filter((s) => s.strokes != null);
       const { total } = calcPlayerScore(rows, parJson);
@@ -441,16 +426,15 @@ export default function ScorecardPage() {
     console.log("tag changes:", changes);
     return { changes, allPlayers: sortedByScore, sortedTags };
   }
+
   async function confirmTagChanges() {
     setConfirmingTags(true);
 
-    // Build the assignments array for the batch function
     const assignments = tagResolution.changes.map((change) => ({
       player_id: change.playerId,
       new_tag: change.newTag,
     }));
 
-    // Single atomic call — clears all tags first then reassigns
     const { error } = await supabase.rpc("assign_bag_tag_batch", {
       tag_assignments: assignments,
     });
@@ -461,7 +445,6 @@ export default function ScorecardPage() {
       return;
     }
 
-    // Record history for each change
     for (const change of tagResolution.changes) {
       await supabase.from("bag_tag_history").insert({
         tag_number: change.newTag,
@@ -478,7 +461,7 @@ export default function ScorecardPage() {
     setConfirmingTags(false);
     localStorage.removeItem(`teeOrder:${roundId}`);
     scorecardClear(roundId);
-    cacheClear("bagtags:list"); // force fresh fetch after tag changes
+    cacheClear("bagtags:list");
     window.location.href = "/history";
   }
 
@@ -518,7 +501,6 @@ export default function ScorecardPage() {
   const isLastHole = currentHoleIndex === fullOrder.length - 1;
   const d = darkMode;
 
-  // ── Matchplay running score ─────────────────────────────
   function calcMatchScore() {
     if (!isMatchplay || players.length !== 2) return null;
     const [p1, p2] = players;
@@ -545,7 +527,6 @@ export default function ScorecardPage() {
 
   const matchScore = calcMatchScore();
 
-  // ── Strokeplay summary ──────────────────────────────────
   const summary = players
     .map((p) => {
       const rows = fullOrder
@@ -563,7 +544,6 @@ export default function ScorecardPage() {
     })
     .sort((a, b) => a.relativeToPar - b.relativeToPar);
 
-  // ── Dark mode tokens ────────────────────────────────────
   const dm = {
     bg: d ? "#0f1a0f" : "#f0f4f0",
     card: d ? "#1a2e1a" : "#fff",
@@ -664,6 +644,7 @@ export default function ScorecardPage() {
           </div>
         )}
       </div>
+
       {/* Navigation buttons */}
       <div
         style={{
@@ -857,7 +838,6 @@ export default function ScorecardPage() {
                       )}
                     </div>
                     {isComplete ? (
-                      // View only — no controls
                       <div
                         style={{
                           display: "flex",
@@ -935,7 +915,6 @@ export default function ScorecardPage() {
                         )}
                       </div>
                     ) : (
-                      // Editable controls
                       <>
                         <div
                           style={{
@@ -1167,7 +1146,6 @@ export default function ScorecardPage() {
                     </button>
                   )}
                 </div>
-                {/* On playoff holes for tag resolution — always show finish (will re-check for ties) */}
                 {!isMatchplay &&
                   round.play_for_tags &&
                   hole?.isPlayoff &&
@@ -1190,7 +1168,6 @@ export default function ScorecardPage() {
                       {finishing ? "Finishing…" : "Finish & resolve tags 🏷️"}
                     </button>
                   )}
-                {/* Show finish button once match is won on a playoff hole */}
                 {isMatchplay && matchScore?.matchWon && !isLastHole && (
                   <button
                     style={{
@@ -1315,7 +1292,6 @@ export default function ScorecardPage() {
             </div>
 
             {isMatchplay && matchScore ? (
-              // ── Matchplay scoreboard ──
               <div style={{ minWidth: fullOrder.length * 22 + 160 }}>
                 <div
                   style={{
@@ -1459,7 +1435,6 @@ export default function ScorecardPage() {
                 </div>
               </div>
             ) : (
-              // ── Strokeplay scoreboard ──
               <div style={{ minWidth: fullOrder.length * 24 + 180 }}>
                 <div
                   style={{
@@ -1612,6 +1587,7 @@ export default function ScorecardPage() {
           </div>
         )}
       </div>
+
       {/* ── Tag tie — playoff required modal ── */}
       {tagTieInfo && (
         <div
@@ -1706,7 +1682,6 @@ export default function ScorecardPage() {
                   cursor: "pointer",
                 }}
                 onClick={async () => {
-                  // Skip playoff — no tag changes
                   setTagTieInfo(null);
                   await supabase
                     .from("rounds")
@@ -1742,6 +1717,7 @@ export default function ScorecardPage() {
           </div>
         </div>
       )}
+
       {/* ── Tag resolution modal ── */}
       {tagResolution && (
         <div
@@ -1783,7 +1759,6 @@ export default function ScorecardPage() {
               Based on final scores — lowest score wins the lowest tag number.
             </div>
 
-            {/* Final standings */}
             <div style={{ marginBottom: "1.25rem" }}>
               <div
                 style={{
@@ -1842,7 +1817,6 @@ export default function ScorecardPage() {
               ))}
             </div>
 
-            {/* Tag changes */}
             <div style={{ marginBottom: "1.5rem" }}>
               <div
                 style={{
@@ -1966,21 +1940,21 @@ function getRelStyle(rel, dark) {
   if (rel === undefined || rel === null)
     return { background: "transparent", color: dark ? "#ffffff" : "#ffffff" };
   if (rel <= -3)
-    return { background: dark ? "#4668af" : "#4668af", color: "#ffffff" }; // -3 or better = light blue
+    return { background: dark ? "#4668af" : "#4668af", color: "#ffffff" };
   if (rel === -2)
-    return { background: dark ? "#07e978" : "#07e978", color: "#ffffff" }; // -2 = light green
+    return { background: dark ? "#07e978" : "#07e978", color: "#ffffff" };
   if (rel === -1)
-    return { background: dark ? "#0d8d2f" : "#0d8d2f", color: "#ffffff" }; // -1 = green
+    return { background: dark ? "#0d8d2f" : "#0d8d2f", color: "#ffffff" };
   if (rel === 0)
     return {
       background: dark ? "#3d3d3f" : "#3d3d3f",
       color: dark ? "#ffffff" : "#ffffff",
-    }; // par = gray
+    };
   if (rel === 1)
-    return { background: dark ? "#9b0909" : "#9b0909", color: "#ffffff" }; // +1 = red
+    return { background: dark ? "#9b0909" : "#9b0909", color: "#ffffff" };
   if (rel === 2)
-    return { background: dark ? "#b14d06" : "#b14d06", color: "#ffffff" }; // +2 = orange
+    return { background: dark ? "#b14d06" : "#b14d06", color: "#ffffff" };
   if (rel === 3)
-    return { background: dark ? "#570d81" : "#570d81", color: "#ffffff" }; // +3 = purple
-  return { background: dark ? "#6b4b33" : "#6b4b33", color: "#ffffff" }; // +4+ = brown
+    return { background: dark ? "#570d81" : "#570d81", color: "#ffffff" };
+  return { background: dark ? "#6b4b33" : "#6b4b33", color: "#ffffff" };
 }
