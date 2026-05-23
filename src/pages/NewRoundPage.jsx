@@ -25,6 +25,7 @@ export default function NewRoundPage() {
   const [format, setFormat] = useState("strokeplay");
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [playForTags, setPlayForTags] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -374,45 +375,88 @@ export default function NewRoundPage() {
               </p>
             )}
 
-            <div style={styles.list}>
-              {members.map((m) => {
-                const selected = selectedPlayers.includes(m.id);
-                const isMe = m.id === user.id;
-                const matchplayFull =
-                  format === "matchplay" &&
-                  selectedPlayers.length >= 2 &&
-                  !selected;
-                return (
-                  <button
-                    key={m.id}
-                    style={{
-                      ...styles.listItem,
-                      ...(selected ? styles.listItemActive : {}),
-                      ...(matchplayFull ? { opacity: 0.4 } : {}),
-                    }}
-                    disabled={matchplayFull}
-                    onClick={() => togglePlayer(m.id)}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span>
-                        {m.nickname || m.full_name}
-                        {isMe && <span style={styles.youBadge}>You</span>}
-                      </span>
-                      {m.bag_tag_number && (
-                        <span style={styles.tagBadge}>
-                          🏷️ #{m.bag_tag_number}
-                        </span>
-                      )}
-                    </div>
-                  </button>
+            {/* Search */}
+            <div style={styles.searchWrap}>
+              <span style={styles.searchIcon}>🔍</span>
+              <input
+                style={styles.searchInput}
+                type="text"
+                placeholder="Search players…"
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+              />
+              {playerSearch.length > 0 && (
+                <button
+                  style={styles.searchClear}
+                  onClick={() => setPlayerSearch("")}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Scrollable player list — selected pinned to top */}
+            <div style={styles.playerScroll}>
+              {(() => {
+                const query = playerSearch.toLowerCase();
+                const matches = (m) =>
+                  (m.nickname || m.full_name).toLowerCase().includes(query);
+
+                const selected = members.filter(
+                  (m) => selectedPlayers.includes(m.id) && matches(m),
                 );
-              })}
+                const unselected = members.filter(
+                  (m) => !selectedPlayers.includes(m.id) && matches(m),
+                );
+                const visible = [...selected, ...unselected];
+
+                if (visible.length === 0)
+                  return (
+                    <p style={styles.empty}>
+                      No players match "{playerSearch}"
+                    </p>
+                  );
+
+                return visible.map((m) => {
+                  const isSelected = selectedPlayers.includes(m.id);
+                  const isMe = m.id === user.id;
+                  const matchplayFull =
+                    format === "matchplay" &&
+                    selectedPlayers.length >= 2 &&
+                    !isSelected;
+                  return (
+                    <button
+                      key={m.id}
+                      style={{
+                        ...styles.listItem,
+                        marginBottom: 0,
+                        ...(isSelected ? styles.listItemActive : {}),
+                        ...(matchplayFull ? { opacity: 0.4 } : {}),
+                      }}
+                      disabled={matchplayFull}
+                      onClick={() => togglePlayer(m.id)}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span>
+                          {m.nickname || m.full_name}
+                          {isMe && <span style={styles.youBadge}>You</span>}
+                        </span>
+                        {m.bag_tag_number && (
+                          <span style={styles.tagBadge}>
+                            🏷️ #{m.bag_tag_number}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
             </div>
 
             {/* Starting hole + format — moved here from layout step */}
@@ -878,4 +922,44 @@ const styles = {
   toggleThumbOn: { left: 22 },
   toggleLabel: { fontSize: 14, fontWeight: 600, color: "#1a2e1a" },
   toggleSub: { fontSize: 12, color: "#6b7280", marginTop: 2 },
+  searchWrap: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  searchIcon: {
+    position: "absolute",
+    left: 10,
+    fontSize: 14,
+    pointerEvents: "none",
+  },
+  searchInput: {
+    width: "100%",
+    padding: "0.6rem 2rem 0.6rem 2rem",
+    borderRadius: 8,
+    border: "1.5px solid #d1d5db",
+    fontSize: 14,
+    background: "#f9fafb",
+    boxSizing: "border-box",
+  },
+  searchClear: {
+    position: "absolute",
+    right: 8,
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: 13,
+    color: "#9ca3af",
+    padding: "2px 4px",
+  },
+  playerScroll: {
+    maxHeight: 460,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    marginBottom: "0.75rem",
+    paddingRight: 2,
+  },
 };
