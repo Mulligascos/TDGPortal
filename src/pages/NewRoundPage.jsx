@@ -18,7 +18,7 @@ export default function NewRoundPage() {
   const [courses, setCourses] = useState([]);
   const [layouts, setLayouts] = useState([]);
   const [members, setMembers] = useState([]);
-  const [playerDivisions, setPlayerDivisions] = useState({}); // { playerId: divisionName }
+  const [playerDivisions, setPlayerDivisions] = useState({});
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLayout, setSelectedLayout] = useState(null);
   const [startingHole, setStartingHole] = useState(1);
@@ -30,9 +30,7 @@ export default function NewRoundPage() {
 
   // ── Restore saved setup from localStorage on mount ──────
   useEffect(() => {
-    // Don't restore if coming from tournament (has its own prefill)
     if (tournamentState?.prefilledFromTournament) return;
-
     const cached = cacheGet("newRound:setup");
     if (cached) {
       setSelectedCourse(cached.selectedCourse ?? null);
@@ -47,7 +45,7 @@ export default function NewRoundPage() {
 
   // ── Persist setup to localStorage whenever key state changes ──
   useEffect(() => {
-    if (!selectedCourse) return; // nothing worth saving yet
+    if (!selectedCourse) return;
     cacheSet(
       "newRound:setup",
       {
@@ -60,7 +58,7 @@ export default function NewRoundPage() {
         step,
       },
       30 * 60 * 1000,
-    ); // 30 minute TTL
+    );
   }, [
     selectedCourse,
     selectedLayout,
@@ -87,7 +85,6 @@ export default function NewRoundPage() {
         });
     }
 
-    // Pre-fill from tournament if navigated from dashboard
     if (tournamentState?.prefilledFromTournament) {
       const course = {
         id: tournamentState.courseId,
@@ -106,7 +103,6 @@ export default function NewRoundPage() {
     const cached = cacheGet(cacheKey);
     if (cached) {
       setLayouts(cached);
-      // Pre-fill layout from tournament
       if (
         tournamentState?.prefilledFromTournament &&
         tournamentState.layoutId
@@ -126,7 +122,6 @@ export default function NewRoundPage() {
         .then(({ data }) => {
           setLayouts(data ?? []);
           cacheSet(cacheKey, data ?? [], 10 * 60 * 1000);
-          // Pre-fill layout from tournament
           if (
             tournamentState?.prefilledFromTournament &&
             tournamentState.layoutId
@@ -171,6 +166,18 @@ export default function NewRoundPage() {
     }
   }, [format, selectedPlayers]);
 
+  function selectCourse(c) {
+    setSelectedCourse(c);
+    setSelectedLayout(null);
+    setStep(1);
+  }
+
+  function selectLayout(l) {
+    setSelectedLayout(l);
+    setStartingHole(1);
+    setStep(2);
+  }
+
   function togglePlayer(id) {
     setSelectedPlayers((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
@@ -209,27 +216,22 @@ export default function NewRoundPage() {
         .insert(playerRows);
       if (playersErr) throw playersErr;
 
-      // Link to tournament round and register players
       if (tournamentState?.tournamentRoundId) {
-        // Link the round
         await supabase
           .from("tournament_rounds")
           .update({ round_id: round.id })
           .eq("id", tournamentState.tournamentRoundId);
 
-        // Get or create tournament divisions
         const { data: existingDivisions } = await supabase
           .from("tournament_divisions")
           .select("*")
           .eq("tournament_id", tournamentState.tournamentId);
 
-        // For each player, find or create their division and register them
         for (const playerId of selectedPlayers) {
           const member = members.find((m) => m.id === playerId);
           const divisionName =
             playerDivisions[playerId] || member?.default_division || "Open";
 
-          // Find existing division or create it
           let division = existingDivisions?.find(
             (d) => d.name === divisionName,
           );
@@ -248,7 +250,6 @@ export default function NewRoundPage() {
 
           if (!division) continue;
 
-          // Register player in tournament (upsert in case they already exist)
           await supabase.from("tournament_players").upsert(
             {
               tournament_id: tournamentState.tournamentId,
@@ -260,9 +261,7 @@ export default function NewRoundPage() {
         }
       }
 
-      // Clear the saved setup — round has started
       cacheClear("newRound:setup");
-
       navigate(`/round/${round.id}`);
     } catch (err) {
       setError(err.message);
@@ -316,31 +315,21 @@ export default function NewRoundPage() {
                       ? styles.listItemActive
                       : {}),
                   }}
-                  onClick={() => setSelectedCourse(c)}
+                  onClick={() => selectCourse(c)}
                 >
                   <strong>{c.name}</strong>
                   {c.location && <span style={styles.sub}>{c.location}</span>}
                 </button>
               ))}
             </div>
-            <button
-              style={{
-                ...styles.nextBtn,
-                opacity: !selectedCourse ? 0.4 : 1,
-                cursor: !selectedCourse ? "not-allowed" : "pointer",
-              }}
-              disabled={!selectedCourse}
-              onClick={() => setStep(1)}
-            >
-              Next →
-            </button>
           </div>
         )}
 
-        {/* STEP 1: Layout + starting hole + format */}
+        {/* STEP 1: Select layout */}
         {step === 1 && (
           <div>
             <h2 style={styles.stepTitle}>Select layout</h2>
+            <p style={styles.hint}>{selectedCourse?.name}</p>
             <div style={styles.list}>
               {layouts.map((l) => (
                 <button
@@ -351,10 +340,7 @@ export default function NewRoundPage() {
                       ? styles.listItemActive
                       : {}),
                   }}
-                  onClick={() => {
-                    setSelectedLayout(l);
-                    setStartingHole(1);
-                  }}
+                  onClick={() => selectLayout(l)}
                 >
                   <strong>{l.layout_name}</strong>
                   <span style={styles.sub}>
@@ -366,63 +352,15 @@ export default function NewRoundPage() {
                 </button>
               ))}
             </div>
-
-            {selectedLayout && (
-              <>
-                <label style={styles.label}>Starting hole</label>
-                <select
-                  style={styles.select}
-                  value={startingHole}
-                  onChange={(e) => setStartingHole(Number(e.target.value))}
-                >
-                  {Array.from(
-                    { length: selectedLayout.number_of_holes },
-                    (_, i) => i + 1,
-                  ).map((h) => (
-                    <option key={h} value={h}>
-                      Hole {h}
-                    </option>
-                  ))}
-                </select>
-
-                <label style={styles.label}>Format</label>
-                <div style={styles.formatRow}>
-                  {["strokeplay", "matchplay"].map((f) => (
-                    <button
-                      key={f}
-                      style={{
-                        ...styles.formatBtn,
-                        ...(format === f ? styles.formatBtnActive : {}),
-                      }}
-                      onClick={() => setFormat(f)}
-                    >
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-
             <div style={styles.navRow}>
               <button style={styles.backBtn} onClick={() => setStep(0)}>
                 ← Back
-              </button>
-              <button
-                style={{
-                  ...styles.nextBtn,
-                  opacity: !selectedLayout ? 0.4 : 1,
-                  cursor: !selectedLayout ? "not-allowed" : "pointer",
-                }}
-                disabled={!selectedLayout}
-                onClick={() => setStep(2)}
-              >
-                Next →
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: Select players */}
+        {/* STEP 2: Select players + starting hole + format */}
         {step === 2 && (
           <div>
             <h2 style={styles.stepTitle}>Confirm players</h2>
@@ -477,6 +415,46 @@ export default function NewRoundPage() {
               })}
             </div>
 
+            {/* Starting hole + format — moved here from layout step */}
+            <div style={styles.optionsBlock}>
+              <div style={styles.optionsRow}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Starting hole</label>
+                  <select
+                    style={styles.select}
+                    value={startingHole}
+                    onChange={(e) => setStartingHole(Number(e.target.value))}
+                  >
+                    {Array.from(
+                      { length: selectedLayout.number_of_holes },
+                      (_, i) => i + 1,
+                    ).map((h) => (
+                      <option key={h} value={h}>
+                        Hole {h}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.label}>Format</label>
+                  <div style={styles.formatRow}>
+                    {["strokeplay", "matchplay"].map((f) => (
+                      <button
+                        key={f}
+                        style={{
+                          ...styles.formatBtn,
+                          ...(format === f ? styles.formatBtnActive : {}),
+                        }}
+                        onClick={() => setFormat(f)}
+                      >
+                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {format === "strokeplay" && taggedSelectedCount >= 2 && (
               <div
                 style={styles.toggleRow}
@@ -504,7 +482,7 @@ export default function NewRoundPage() {
                 </div>
               </div>
             )}
-            {/* Division confirmation for tournament rounds */}
+
             {tournamentState?.prefilledFromTournament &&
               selectedPlayers.length > 0 && (
                 <div
@@ -577,6 +555,7 @@ export default function NewRoundPage() {
                     ))}
                 </div>
               )}
+
             {format === "matchplay" && selectedPlayers.length !== 2 && (
               <p
                 style={{ color: "#dc2626", fontSize: 13, margin: "0 0 0.5rem" }}
@@ -744,7 +723,7 @@ const styles = {
   stepTitle: {
     fontSize: 18,
     fontWeight: 600,
-    margin: "0 0 1rem",
+    margin: "0 0 0.25rem",
     color: "#1a2e1a",
   },
   list: {
@@ -767,12 +746,22 @@ const styles = {
   },
   listItemActive: { borderColor: "#1d6b3a", background: "#f0faf4" },
   sub: { fontSize: 13, color: "#6b7280" },
+  optionsBlock: {
+    borderTop: "1px solid #f3f4f6",
+    paddingTop: "0.875rem",
+    marginBottom: "0.75rem",
+  },
+  optionsRow: {
+    display: "flex",
+    gap: 12,
+    alignItems: "flex-start",
+  },
   label: {
     display: "block",
     fontSize: 14,
     fontWeight: 500,
     color: "#374151",
-    margin: "1rem 0 6px",
+    margin: "0 0 6px",
   },
   select: {
     width: "100%",
@@ -792,7 +781,7 @@ const styles = {
     background: "#fff",
     cursor: "pointer",
     fontWeight: 500,
-    fontSize: 15,
+    fontSize: 14,
   },
   formatBtnActive: {
     borderColor: "#1d6b3a",
