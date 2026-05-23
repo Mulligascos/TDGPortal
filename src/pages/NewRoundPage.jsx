@@ -954,7 +954,7 @@ const styles = {
     padding: "2px 4px",
   },
   playerScroll: {
-    maxHeight: 460,
+    maxHeight: 360,
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
