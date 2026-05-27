@@ -44,6 +44,7 @@ export default function AdminMembers() {
       email: "",
       password: "",
       role: "member",
+      default_division: "",
     });
     setShowForm(true);
     setError(null);
@@ -75,6 +76,7 @@ export default function AdminMembers() {
       email: "",
       password: "",
       role: "member",
+      default_division: "",
     });
   }
 
@@ -84,7 +86,6 @@ export default function AdminMembers() {
     setError(null);
     setSuccess(null);
 
-    // Save current admin session before creating new user
     const {
       data: { session: adminSession },
     } = await supabase.auth.getSession();
@@ -101,7 +102,6 @@ export default function AdminMembers() {
       return;
     }
 
-    // Immediately restore the admin session
     if (adminSession) {
       await supabase.auth.setSession({
         access_token: adminSession.access_token,
@@ -109,7 +109,6 @@ export default function AdminMembers() {
       });
     }
 
-    // Update nickname and role after trigger fires
     setTimeout(async () => {
       await supabase
         .from("profiles")
@@ -204,14 +203,14 @@ export default function AdminMembers() {
     margin: "0 0 0.25rem",
     fontSize: 16,
     fontWeight: 600,
-    color: "t.text",
+    color: t.text,
   };
   const lbl = { fontSize: 13, fontWeight: 500, color: "#374151" };
   const editNote = { fontSize: 11, color: "#9ca3af", fontWeight: 400 };
   const inp = {
     padding: "0.625rem 0.75rem",
     borderRadius: 8,
-    border: "1.5px solid t.border",
+    border: `1.5px solid ${t.border}`,
     fontSize: 15,
     width: "100%",
     boxSizing: "border-box",
@@ -221,7 +220,7 @@ export default function AdminMembers() {
   const genBtn = {
     padding: "0.625rem 0.875rem",
     background: "#f3f4f6",
-    border: "1.5px solid t.border",
+    border: `1.5px solid ${t.border}`,
     borderRadius: 8,
     cursor: "pointer",
     fontSize: 13,
@@ -277,6 +276,7 @@ export default function AdminMembers() {
     alignItems: "center",
     gap: 10,
     minWidth: 0,
+    flex: 1,
   };
   const cardRight = {
     display: "flex",
@@ -297,7 +297,7 @@ export default function AdminMembers() {
     fontSize: 16,
     flexShrink: 0,
   };
-  const nameStyle = { fontWeight: 600, fontSize: 15, color: "t.text" };
+  const nameStyle = { fontWeight: 600, fontSize: 15, color: t.text };
   const fullNameStyle = { fontSize: 11, color: "#9ca3af" };
   const emailStyle = { fontSize: 12, color: t.textSub };
   const tagStyle = { fontSize: 12, color: "#1d6b3a", fontWeight: 600 };
@@ -311,15 +311,15 @@ export default function AdminMembers() {
   const memberBadge = { background: "#f3f4f6", color: t.textSub };
   const editBtn = {
     fontSize: 12,
-    padding: "2px 8px",
+    padding: "4px 10px",
     borderRadius: 4,
-    border: "1px solid t.border",
+    border: `1px solid ${t.border}`,
     background: t.card,
     cursor: "pointer",
     color: "#374151",
   };
   const deleteBtn = {
-    padding: "2px 6px",
+    padding: "4px 8px",
     background: t.card,
     border: "1px solid #fca5a5",
     borderRadius: 6,
@@ -327,7 +327,7 @@ export default function AdminMembers() {
     cursor: "pointer",
   };
   const successBox = {
-    background: t.succesLight,
+    background: t.successLight,
     color: t.success,
     padding: "0.75rem 1rem",
     borderRadius: 8,
@@ -455,6 +455,19 @@ export default function AdminMembers() {
             <option value="admin">Admin</option>
           </select>
 
+          <label style={lbl}>
+            Default division{" "}
+            <span style={editNote}>(used as default for tournaments)</span>
+          </label>
+          <input
+            style={inp}
+            value={form.default_division}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, default_division: e.target.value }))
+            }
+            placeholder="e.g. Open, Women's, Junior (optional)"
+          />
+
           <div style={btnRow}>
             <button type="button" style={cancelBtn} onClick={cancel}>
               Cancel
@@ -476,28 +489,21 @@ export default function AdminMembers() {
               <div style={avatar}>
                 {(m.nickname || m.full_name)?.charAt(0).toUpperCase()}
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={nameStyle}>{m.nickname || m.full_name}</div>
                 {m.nickname && <div style={fullNameStyle}>{m.full_name}</div>}
                 <div style={emailStyle}>{m.email}</div>
+                {m.default_division && (
+                  <div style={{ fontSize: 11, color: t.textSub }}>
+                    {m.default_division}
+                  </div>
+                )}
               </div>
             </div>
             <div style={cardRight}>
               {m.bag_tag_number && (
                 <span style={tagStyle}>🏷️ #{m.bag_tag_number}</span>
               )}
-              <label style={lbl}>
-                Default division{" "}
-                <span style={editNote}>(used as default for tournaments)</span>
-              </label>
-              <input
-                style={inp}
-                value={form.default_division}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, default_division: e.target.value }))
-                }
-                placeholder="e.g. Open, Women's, Junior (optional)"
-              />
               <span
                 style={{
                   ...roleBadge,
